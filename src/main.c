@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     bool running = true;
     SDL_Event e;
     uint32_t lastTime = SDL_GetTicks();
-    uint32_t x = 1500;
+    uint32_t x = 30;
     int w = 0;
     while(running)
     {

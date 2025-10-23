@@ -45,12 +45,10 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
     //top corners of BB get an even-ish spread
 
     uint32_t toMake = count * deltaTime; //create count per second
-    // best to make the count go up in increments of 30
+    // best to make the count go up in increments of 30 starting at 0
 
     float bbx1 = rainBox->x;
     float bbx2 = rainBox->width + bbx1;
-    float increment = (bbx2 - bbx1) / toMake;
-
     for (int i = 0; i < toMake && rm->count < rm->maxCount; i++)
     {
         Droplet* d = arena_alloc(rm->arena, sizeof(Droplet));
