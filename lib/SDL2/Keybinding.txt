@@ -1,0 +1,32 @@
+### Common SDL2 Key Bindings ###
+
+Key	            SDL Key Symbol
+Escape	        SDLK_ESCAPE
+Return/Enter	SDLK_RETURN
+Space	        SDLK_SPACE
+Tab	            SDLK_TAB
+Backspace	    SDLK_BACKSPACE
+Up Arrow	    SDLK_UP
+Down Arrow	    SDLK_DOWN
+Left Arrow	    SDLK_LEFT
+Right Arrow	    SDLK_RIGHT
+0	            SDLK_0
+1	            SDLK_1
+...	...
+9	            SDLK_9
+A	            SDLK_a
+B	            SDLK_b
+...	...
+Z	            SDLK_z
+F1	            SDLK_F1
+F2	            SDLK_F2
+...	...
+F12	            SDLK_F12
+Left Shift	    SDLK_LSHIFT
+Right Shift	    SDLK_RSHIFT
+Left Ctrl	    SDLK_LCTRL
+Right Ctrl	    SDLK_RCTRL
+Left Alt	    SDLK_LALT
+Right Alt	    SDLK_RALT
+Left GUI	    SDLK_LGUI
+Right GUI	    SDLK_RGUI
