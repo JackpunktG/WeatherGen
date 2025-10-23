@@ -14,10 +14,10 @@ More research needed :)
 
 ### Rain Effect - draft 0.5
 
-[!light](images/light.png)
-[!medium](images/med.png)
-[!heavy](images/heavy.png)
-[!vHeavy](images/vHeavy.png)
+![light](images/light.png)
+![medium](images/med.png)
+![heavy](images/heavy.png)
+![vHeavy](images/vHeavy.png)
 
 to add 
 - lightning effect as the rain gets heaving
