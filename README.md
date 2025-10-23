@@ -1,4 +1,4 @@
-# RainGen
+# WeatherGen
 
 -> STATUS: WORKING
 
