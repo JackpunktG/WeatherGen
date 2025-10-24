@@ -107,14 +107,51 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
             d->color.a = 185 + (rand() % 56);
             d->vY = 120;
         }
-
+        d->dropDeath = false;
 
         rm->drops[rm->count++] = d;
 
     }
 }
 
-void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int wind)
+bool rain_collision_check(Droplet* d, CollisionObjectList* colList)
+{
+    for (int i = 0; i < colList->totalObjects; i++)
+    {
+        if (colList->type[i] == COLLISION_BOUNDING_BOX)
+        {
+            BoundingBox *bb = (BoundingBox *)colList->obj[i];
+            if ((d->x < bb->x) || (d->y < bb->y) || (d->x + d->size > bb->width) || (d->y + (d->size * 3) > bb->height))
+                return true;
+        }
+        else if (colList->type[i] == COLLISION_CIRCLE)
+        {
+            SDL_Rect rect = {d->x, d->y, d->size, d->size * 3};
+            Circle *c = (Circle *)colList->obj[i];
+            if (circle_box_collision(c->x, c->y, c->radius, &rect))
+                return true;
+
+        }
+        else if (colList->type[i] == COLLISION_BOX)
+        {
+            SDL_Rect rect = {d->x, d->y, d->size, d->size * 3};
+            Box *b = (Box *)colList->obj[i];
+            if (box_box_collision(&rect, &b->rect))
+                return true;
+        }
+    }
+    return false;
+
+}
+
+void droplet_death(Droplet* d)
+{
+    d->vY = d->size;
+    d->dropDeath = true;
+}
+
+//don't include rainBox in CollisionObjectList
+void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int wind, CollisionObjectList* collObjects)
 {
     if (!rm) return;
 
@@ -123,28 +160,53 @@ void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int win
     {
         Droplet* d = rm->drops[i];
 
-        if (d->y > rainBox->height - rainBox->y)
+        if(!d->dropDeath)
         {
-            //if belows screen remove partical and swap with last one
-            rm->drops[i] = rm->drops[--rm->count];
-            continue; // goes back to the start to process the drop move into this possition
+            if (d->size >= 4)
+                d->y += (d->vY * deltaTime * 4);
+            else if (d->size >= 2)
+                d->y += (d->vY * deltaTime* 2);
+            else
+                d->y += (d->vY * deltaTime);
+
+            d->y += (-3 + rand() % 7);
+
+            //checking collision
+            if (d->y > rainBox->height - rainBox->y) //|| rain_collision_check(d, collObjects))
+            {
+                d->y = rainBox->height -rainBox->y;
+
+                droplet_death(d);
+
+                i++;
+                continue; // goes back to the start to process the drop next drop
+            }
+            //slight x random movement
+            d->x += (-2 + rand() % 5);
+
+            //Wind and screen wrap for when wind is active
+            if (wind != 0)
+            {
+                d->x += (wind * deltaTime);
+
+                if (wind < 0 && d->x < rainBox->x)
+                    d->x = rainBox->width + rainBox->x - (rainBox->x - d->x);
+                else if (wind > 0 && d->x > rainBox->width + rainBox->x)
+                    d->x = rainBox->x + (d->x - rainBox->width + rainBox->x);
+            }
+
         }
+        else if (d->dropDeath && d->vY > 0)
+        {
+            d->vY -= (deltaTime * 5);
 
-        if (wind != 0)
-            d->x += (wind * deltaTime);
-
-        d->x += (-2 + rand() % 5);
-
-
-        if (d->size >= 4)
-            d->y += (d->vY * deltaTime * 4);
-        else if (d->size >= 2)
-            d->y += (d->vY * deltaTime* 2);
-        else
-            d->y += (d->vY * deltaTime);
-
-        d->y += (-3 + rand() % 7);
-
+            //if water particle time is up the spot is swapped with newest drop
+            if (d->vY < 0)
+            {
+                rm->drops[i] = rm->drops[--rm->count];
+                continue;
+            }
+        }
         i++;
     }
 
@@ -160,10 +222,16 @@ void rain_render(RainMachine* rm, SDL_Renderer* renderer)
     for (size_t i = 0; i < rm->count; i++)
     {
         Droplet* d = rm->drops[i];
-
-        SDL_FRect rect = {d->x, d->y, d->size, d->size * 3};
-
-        draw_filled_rect(renderer, NULL, &rect, d->color);
+        if (!d->dropDeath)
+        {
+            SDL_FRect rect = {d->x, d->y, d->size, d->size * 3};
+            draw_filled_rect(renderer, NULL, &rect, d->color);
+        }
+        else if (d->dropDeath && d->vY > 0)
+        {
+            for (int j = 0; j < d->size; j++)
+                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)), d->y + (d->size + (rand() % d->size)), d->color);
+        }
     }
 }
 

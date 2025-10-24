@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
     WindowConstSize window;
     init_SDL2_basic_vsync(&window, "RAINGEN", WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    BoundingBox bb = bounding_box_init_screen(WINDOW_WIDTH, WINDOW_HEIGHT);
+    BoundingBox bb = bounding_box_init_screen(WINDOW_WIDTH, WINDOW_HEIGHT / 2);
 
     RainMachine* rm = rainmachine_init(100000);
     if (!rm) return 1;
@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     int w = 0;
     while(running)
     {
-// Handle events
+        // Handle events
         while (SDL_PollEvent(&e))
         {
             if (e.type == SDL_QUIT)
@@ -46,10 +46,10 @@ int main(int argc, char* argv[])
                     x -= 30;
                     break;
                 case SDLK_RIGHT:
-                    w += 1;
+                    w += 50;
                     break;
                 case SDLK_LEFT:
-                    w -= 1;
+                    w -= 50;
                     break;
                 }
                 printf("second rain create: %u - wind: %d\n", x, w);
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
         rain_spwan(rm, &bb, x, deltaTime);
-        rain_update(rm, &bb, deltaTime, w);
+        rain_update(rm, &bb, deltaTime, w, NULL);
 
         rain_render(rm, window.renderer);
 

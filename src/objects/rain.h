@@ -9,9 +9,10 @@
 typedef struct
 {
     float x, y;
-    float vY;
+    float vY;       //changes to deathCount then dropDeath is true and when < 0 gets replaced with the newest dot
     SDL_Color color;
     uint8_t size;   //1 - 5 where the droplets get a litte bigger and faster each increment
+    bool dropDeath;
 } Droplet;
 
 typedef struct
@@ -31,7 +32,7 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
 
 //updated rain possition
 //-value for wind goes left | + right  Value equated to pper second movenemt (Basicly xMaxVel)
-void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int wind);
+void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int wind, CollisionObjectList* collObjects);
 //render
 void rain_render(RainMachine* rm, SDL_Renderer* renderer);
 
