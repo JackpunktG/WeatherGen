@@ -119,7 +119,19 @@ bool box_box_collision_DEBUGG(SDL_Renderer* renderer, SDL_Rect* a, SDL_Rect* b);
 bool circle_box_collision_DEBUGG(SDL_Renderer* renderer, int circleX, int circleY, int radius, SDL_Rect* box);
 
 
+
+
+
+
+
 // ######## Collision and Objects for collision
+//for return collision funtions were you want to know the point of collision
+enum COLLISION_RETURN
+{
+    COLLISION_RETURN_NONE,
+    COLLISION_RETURN_FLOOR,
+    COLLISION_RETURN_CEILING
+};
 
 typedef enum OBJ_TYPE
 {
@@ -221,6 +233,8 @@ typedef struct
 Box box_init_basic(short x, short y, short width, short height, short maxVelX, short maxVelY);
 Box box_init_platformer_movement(short x, short y, short width, short height, float accelerating, short maxVelX, short jumpHeight);
 
+//for box collision with send back
+bool box_detect_collision(SDL_Rect* box, CollisionObjectList* colList, short *sendBack, enum COLLISION_RETURN sendBackType);
 
 //motion
 //free "Space" style motion - can be modded with different collision effects

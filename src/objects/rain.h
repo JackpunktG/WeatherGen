@@ -6,6 +6,8 @@
 #include <SDL2/SDL.h>
 
 
+
+/* Rain Machine */
 typedef struct
 {
     float x, y;
@@ -38,6 +40,8 @@ void rain_render(RainMachine* rm, SDL_Renderer* renderer);
 
 //destory
 void rainmachine_destroy(RainMachine* rm);
+
+/* Wind Machine */
 
 
 #endif

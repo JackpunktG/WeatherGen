@@ -1181,22 +1181,15 @@ Box box_init_platformer_movement(short x, short y, short width, short height, fl
     return b;
 }
 
-enum COLLISION_RETURN
-{
-    COLLISION_RETURN_NONE,
-    COLLISION_RETURN_FLOOR,
-    COLLISION_RETURN_CEILING
-};
 
-
-bool box_detect_collision(Box* box, CollisionObjectList* colList, short *sendBack, enum COLLISION_RETURN sendBackType)
+bool box_detect_collision(SDL_Rect* box, CollisionObjectList* colList, short *sendBack, enum COLLISION_RETURN sendBackType)
 {
     for (int i = 0; i < colList->totalObjects; i++)
     {
         if (colList->type[i] == COLLISION_BOUNDING_BOX)
         {
             BoundingBox *bb = (BoundingBox *)colList->obj[i];
-            if ((box->rect.x < bb->x) || (box->rect.y < bb->y) || (box->rect.x + box->rect.w > bb->width) || (box->rect.y + box->rect.h > bb->height))
+            if ((box->x < bb->x) || (box->y < bb->y) || (box->x + box->w > bb->width) || (box->y + box->h > bb->height))
             {
                 if (sendBack != NULL && sendBackType == COLLISION_RETURN_FLOOR ) *sendBack = bb->height + bb->y;
                 else if(sendBack != NULL && sendBackType == COLLISION_RETURN_CEILING) *sendBack = bb->y;
@@ -1206,7 +1199,7 @@ bool box_detect_collision(Box* box, CollisionObjectList* colList, short *sendBac
         else if (colList->type[i] == COLLISION_CIRCLE)
         {
             Circle *c = (Circle *)colList->obj[i];
-            if (circle_box_collision(c->x, c->y, c->radius, &box->rect))
+            if (circle_box_collision(c->x, c->y, c->radius, box))
             {
                 if (sendBack != NULL && sendBackType == COLLISION_RETURN_FLOOR)  *sendBack = c->y - c->radius;
                 else if(sendBack != NULL && sendBackType == COLLISION_RETURN_CEILING) *sendBack = c->y + c->radius;
@@ -1216,7 +1209,7 @@ bool box_detect_collision(Box* box, CollisionObjectList* colList, short *sendBac
         else if (colList->type[i] == COLLISION_BOX)
         {
             Box *b = (Box *)colList->obj[i];
-            if (box_box_collision(&box->rect, &b->rect))
+            if (box_box_collision(box, &b->rect))
             {
                 if (sendBack != NULL && sendBackType == COLLISION_RETURN_FLOOR) *sendBack = b->rect.y;
                 else if(sendBack != NULL && sendBackType == COLLISION_RETURN_CEILING) *sendBack = b->rect.y + b->rect.h;

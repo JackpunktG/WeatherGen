@@ -13,7 +13,16 @@ int main(int argc, char* argv[])
     WindowConstSize window;
     init_SDL2_basic_vsync(&window, "RAINGEN", WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    BoundingBox bb = bounding_box_init_screen(WINDOW_WIDTH, WINDOW_HEIGHT / 2);
+    BoundingBox rainBox = bounding_box_init_screen(WINDOW_WIDTH, WINDOW_HEIGHT - 20);
+    BoundingBox screenBox = bounding_box_init_screen(WINDOW_WIDTH, WINDOW_HEIGHT -20);
+
+    Box stickBro = box_init_platformer_movement(500, 500, 75, 125, 0.15f, 400, 450);
+    CollisionObjectList* rainCol = collision_object_list_init();
+    CollisionObjectList* manCol = collision_object_list_init();
+
+    collision_object_add(rainCol, &stickBro, COLLISION_BOX);
+    collision_object_add(manCol, &screenBox, COLLISION_BOUNDING_BOX);
+
 
     RainMachine* rm = rainmachine_init(100000);
     if (!rm) return 1;
@@ -31,7 +40,7 @@ int main(int argc, char* argv[])
             {
                 running = false;
             }
-            else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_SPACE)
+            else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_x)
             {
                 running = false;
             }
@@ -52,18 +61,21 @@ int main(int argc, char* argv[])
                     w -= 50;
                     break;
                 }
-                printf("second rain create: %u - wind: %d\n", x, w);
+                x = (x > 10000) ? 0 : x;
             }
+            motion_handle_event_wasd(&stickBro, OBJ_BOX, &e, MOTION_PLATFORMER);
         }
-        clear_screen_with_color(window.renderer, COLOR[WHITE]);
+        clear_screen_with_color(window.renderer, COLOR[GRAY]);
 
         Uint32 currentTime = SDL_GetTicks();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
-        rain_spwan(rm, &bb, x, deltaTime);
-        rain_update(rm, &bb, deltaTime, w, NULL);
+        rain_spwan(rm, &rainBox, x, deltaTime);
+        box_move_platformer(&stickBro, manCol, deltaTime, CONTACT_STOP);
+        rain_update(rm, &rainBox, deltaTime, w, rainCol);
 
         rain_render(rm, window.renderer);
+        box_outlined_draw(&stickBro, window.renderer, COLOR[GREEN]);
 
         SDL_RenderPresent(window.renderer);
     }

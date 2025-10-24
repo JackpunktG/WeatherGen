@@ -1,6 +1,7 @@
 #include "rain.h"
 #include <stdlib.h>
 #include <time.h>
+#include <limits.h>
 
 RainMachine* rainmachine_init(size_t maxCount)
 {
@@ -114,36 +115,6 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
     }
 }
 
-bool rain_collision_check(Droplet* d, CollisionObjectList* colList)
-{
-    for (int i = 0; i < colList->totalObjects; i++)
-    {
-        if (colList->type[i] == COLLISION_BOUNDING_BOX)
-        {
-            BoundingBox *bb = (BoundingBox *)colList->obj[i];
-            if ((d->x < bb->x) || (d->y < bb->y) || (d->x + d->size > bb->width) || (d->y + (d->size * 3) > bb->height))
-                return true;
-        }
-        else if (colList->type[i] == COLLISION_CIRCLE)
-        {
-            SDL_Rect rect = {d->x, d->y, d->size, d->size * 3};
-            Circle *c = (Circle *)colList->obj[i];
-            if (circle_box_collision(c->x, c->y, c->radius, &rect))
-                return true;
-
-        }
-        else if (colList->type[i] == COLLISION_BOX)
-        {
-            SDL_Rect rect = {d->x, d->y, d->size, d->size * 3};
-            Box *b = (Box *)colList->obj[i];
-            if (box_box_collision(&rect, &b->rect))
-                return true;
-        }
-    }
-    return false;
-
-}
-
 void droplet_death(Droplet* d)
 {
     d->vY = d->size;
@@ -151,7 +122,7 @@ void droplet_death(Droplet* d)
 }
 
 //don't include rainBox in CollisionObjectList
-void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int wind, CollisionObjectList* collObjects)
+void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int wind, CollisionObjectList* colList)
 {
     if (!rm) return;
 
@@ -171,10 +142,12 @@ void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int win
 
             d->y += (-3 + rand() % 7);
 
+            short sendBack = SHRT_MIN;
+            SDL_Rect rect = {d->x, d->y, d->size, d->size *3};
             //checking collision
-            if (d->y > rainBox->height - rainBox->y) //|| rain_collision_check(d, collObjects))
+            if ((d->y > rainBox->height - rainBox->y) || box_detect_collision(&rect, colList, &sendBack, COLLISION_RETURN_FLOOR))
             {
-                d->y = rainBox->height -rainBox->y;
+                d->y = (sendBack == SHRT_MIN) ? rainBox->height -rainBox->y : sendBack;
 
                 droplet_death(d);
 
@@ -230,7 +203,7 @@ void rain_render(RainMachine* rm, SDL_Renderer* renderer)
         else if (d->dropDeath && d->vY > 0)
         {
             for (int j = 0; j < d->size; j++)
-                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)), d->y + (d->size + (rand() % d->size)), d->color);
+                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)), d->y - (d->size + (rand() % d->size)), d->color);
         }
     }
 }
