@@ -406,6 +406,12 @@ void draw_line(SDL_Renderer* renderer, int x1, int y1, int x2, int y2, SDL_Color
     SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
 }
 
+void draw_line_float(SDL_Renderer* renderer, float x1, float y1, float x2, float y2, SDL_Color colour)
+{
+    SDL_SetRenderDrawColor(renderer, colour.r, colour.g, colour.b, colour.a);
+    SDL_RenderDrawLineF(renderer, x1, y1, x2, y2);
+}
+
 void draw_point(SDL_Renderer* renderer, int x, int y, SDL_Color colour)
 {
     SDL_SetRenderDrawColor(renderer, colour.r, colour.g, colour.b, colour.a);

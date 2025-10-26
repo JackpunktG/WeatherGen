@@ -29,7 +29,7 @@ typedef struct
 //init RainMachine
 RainMachine* rainmachine_init(size_t maxCount);
 
-//Spwans new rain
+//Spawns new rain
 void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float deltaTime);
 
 //updated rain possition
@@ -41,8 +41,49 @@ void rain_render(RainMachine* rm, SDL_Renderer* renderer);
 //destory
 void rainmachine_destroy(RainMachine* rm);
 
-/* Wind Machine */
+/* Lightning !!! */
 
+typedef struct
+{
+    float x, y;
+} Lightning;
+
+typedef struct
+{
+    float x, y;  //start possition
+    uint8_t count;
+    uint8_t maxCount;
+    Lightning** lightningPoints;
+    uint8_t intensity; // 1-5 offshoots && 6-10 main branch
+} LightningStrand;
+
+typedef struct
+{
+    Arena* arena;
+    LightningStrand** strands;
+    uint8_t strandCount;
+    uint8_t strandMaxCount;
+    uint32_t frequence;   //cooldown between potential lightning strike
+    float coolDownTimer;
+    bool ready;
+    uint8_t serverity;  //likelyhood of a lightning and how likely the intensity of the Strand is higher (1 - 10)
+    float intervalTime;
+    float intervalCooldownTimer; //for deltaTime in updating lightning per second
+} LightningMachine;
+
+
+LightningMachine* lightning_machine_init(uint8_t maxStrands, uint32_t frequence, uint8_t serverity);
+
+//spawns a new lightning strand if the coolDown is up and the roll is successful
+void lightning_machine_update(LightningMachine* lm, BoundingBox* weatherBox, float deltaTime);
+
+//Controles the grow of the strands when lightning is active
+void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float deltaTime);
+
+//lightning Render
+void lightning_render(LightningMachine* lm, BoundingBox* weatherBox, SDL_Renderer* renderer);
+
+void lightning_machine_destroy(LightningMachine* lm);
 
 #endif
 
