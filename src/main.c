@@ -13,21 +13,22 @@ int main(int argc, char* argv[])
     WindowConstSize window;
     init_SDL2_basic_vsync(&window, "RAINGEN", WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    BoundingBox rainBox = bounding_box_init_screen(WINDOW_WIDTH, WINDOW_HEIGHT - 20);
-    BoundingBox screenBox = bounding_box_init_screen(WINDOW_WIDTH, WINDOW_HEIGHT -20);
+    CollisionObjectList* environmentCollision = collision_object_list_init();
 
+    BoundingBox* screenBox = bounding_box_init_screen(WINDOW_WIDTH, WINDOW_HEIGHT, environmentCollision);
+    collision_object_add(environmentCollision, screenBox, COLLISION_BOUNDING_BOX);
+    //test environment collision
+    CollisionRect* box1 = collision_rect_init(300, 600, 200, 50, NULL, environmentCollision);
+    CollisionCircle* circle1 = collision_circle_init(800, 500, 35, NULL, environmentCollision);
+
+    Circle dot = circle_init(100, 100, 5, 500, 500);
+    collision_object_add(environmentCollision, &dot, COLLISION_CIRCLE);
     Box stickBro = box_init_platformer_movement(500, 500, 75, 125, 0.15f, 400, 450);
-    //CollisionObjectList* rainCol = collision_object_list_init();
-    CollisionObjectList* manCol = collision_object_list_init();
+    collision_object_add(environmentCollision, &stickBro, COLLISION_BOX);
 
-    //collision_object_add(rainCol, &stickBro, COLLISION_BOX);
-    collision_object_add(manCol, &screenBox, COLLISION_BOUNDING_BOX);
-
-
-    //RainMachine* rm = rainmachine_init(100000);
-    //if (!rm) return 1;
-
-    LightningMachine* lm = lightning_machine_init(100, 1, 10);
+    RainMachine* rm = rainmachine_init(100000);
+    if (!rm) return 1;
+    LightningMachine* lm = lightning_machine_init(18, 2, 8);
 
     bool running = true;
     SDL_Event e;
@@ -47,47 +48,36 @@ int main(int argc, char* argv[])
             {
                 running = false;
             }
-            else if (e.type == SDL_KEYDOWN)
-            {
-                switch (e.key.keysym.sym)
-                {
-                case SDLK_UP:
-                    x += 30;
-                    break;
-                case SDLK_DOWN:
-                    x -= 30;
-                    break;
-                case SDLK_RIGHT:
-                    w += 50;
-                    break;
-                case SDLK_LEFT:
-                    w -= 50;
-                    break;
-                }
-                x = (x > 10000) ? 0 : x;
-            }
+
             motion_handle_event_wasd(&stickBro, OBJ_BOX, &e, MOTION_PLATFORMER);
+            motion_handle_event_arrow_keys(&dot, OBJ_CIRCLE, &e, MOTION_FREE);
         }
-        clear_screen_with_color(window.renderer, COLOR[WHITE]);
+        x = (x > 10000) ? 0 : x + 1;
+
+        clear_screen_with_color(window.renderer, COLOR[GRAY]);
         Uint32 currentTime = SDL_GetTicks();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
-        //rain_spwan(rm, &rainBox, x, deltaTime);
-        box_move_platformer(&stickBro, manCol, deltaTime, CONTACT_STOP);
-        //rain_update(rm, &rainBox, deltaTime, w, rainCol);
 
-        //rain_render(rm, window.renderer);
-        lightning_machine_update(lm, &screenBox, deltaTime);
+        rain_spwan(rm, screenBox, x, deltaTime);
+        rain_update(rm, screenBox, deltaTime, w, environmentCollision);
+        rain_render(rm, window.renderer);
 
-        lightning_strand_grow(lm, &screenBox, deltaTime);
+        lightning_machine_update(lm, screenBox, deltaTime);
+        lightning_strand_grow(lm, screenBox, deltaTime);
 
-        lightning_render(lm, &screenBox, window.renderer);
-        box_filled_draw(&stickBro, window.renderer, COLOR[GREEN]);
+        box_move_platformer(&stickBro, environmentCollision, deltaTime, CONTACT_STOP);
+        circle_move_free(&dot, environmentCollision, deltaTime, CONTACT_BOUNCE_OFF);
+
+        lightning_render(lm, screenBox, window.renderer);
+        draw_collision_environment(environmentCollision, window.renderer);
+        box_filled_draw(&stickBro, window.renderer, COLOR[LIGHT_GRAY]);
+        circle_filled_draw(&dot, window.renderer, COLOR[TEAL]);
 
         SDL_RenderPresent(window.renderer);
     }
 
-    //rainmachine_destroy(rm);
+    rainmachine_destroy(rm);
     lightning_machine_destroy(lm);
     free_SDL2(&window);
 

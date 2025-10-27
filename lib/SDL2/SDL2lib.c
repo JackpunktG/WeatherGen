@@ -742,6 +742,36 @@ void collision_object_add(CollisionObjectList* colList, void* object, COLLISION_
     colList->totalObjects++;
 }
 
+void draw_collision_environment(CollisionObjectList* environmentList, SDL_Renderer* renderer)
+{
+    for (int i = 0; i < environmentList->totalObjects; i++)
+    {
+        if (environmentList->type[i] == COLLISION_BOUNDING_BOX)
+            continue;
+
+        switch (environmentList->type[i])
+        {
+        case COLLISION_ENVIRONMENT_RECT:
+        {
+            CollisionRect* cR = (CollisionRect *)environmentList->obj[i];
+            if (cR->texture == NULL) draw_filled_rect(renderer, &cR->rect, NULL, COLOR[GREEN]);
+            else render_texture(cR->texture, renderer, cR->rect.x, cR->rect.y);
+            break;
+        }
+        case COLLISION_ENVIRONMENT_CIRCLE:
+        {
+            CollisionCircle* cC = (CollisionCircle *)environmentList->obj[i];
+            if (cC->texture == NULL) draw_filled_circle(renderer, cC->x, cC->y, cC->radius, COLOR[GREEN]);
+            else render_texture(cC->texture, renderer, cC->x, cC->y);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+
+
 //*************************************************************
 
 
@@ -1087,16 +1117,60 @@ void motion_handle_event_wasd(void* object, enum OBJ_TYPE type, SDL_Event* e, en
 
 //Bounding Box
 //*************************************************************
-BoundingBox bounding_box_init_screen(short screenWidth, short screenHeight)
+BoundingBox* bounding_box_init_screen(short screenWidth, short screenHeight, CollisionObjectList* environmentList)
 {
-    BoundingBox bb = {0, 0, screenWidth, screenHeight};
+    BoundingBox* bb = malloc(sizeof(BoundingBox));
+    bb->x = 0;
+    bb->y = 0;
+    bb->width = screenWidth;
+    bb->height = screenHeight;
+
+    collision_object_add(environmentList, bb, COLLISION_BOUNDING_BOX);
+
     return bb;
 }
 
-BoundingBox bounding_box_init(short x, short y, short width, short height)
+BoundingBox* bounding_box_init(short x, short y, short width, short height, CollisionObjectList* environmentList)
 {
-    BoundingBox bb = {x, y, width, height};
+    BoundingBox* bb = malloc(sizeof(BoundingBox));
+    bb->x = x;
+    bb->y = y;
+    bb->width = width;
+    bb->height = height;
+
+    collision_object_add(environmentList, bb, COLLISION_BOUNDING_BOX);
+
     return bb;
+}
+
+/* CollisionRect & CollisionCircle */
+//************************************************************
+
+CollisionRect* collision_rect_init(short x, short y, short width, short height, Texture* texture, CollisionObjectList* environmentList)
+{
+    CollisionRect* cRect = malloc(sizeof(CollisionRect));
+    cRect->rect.x = x;
+    cRect->rect.y = y;
+    cRect->rect.w = width;
+    cRect->rect.h = height;
+    cRect->texture = (texture != NULL) ? texture : NULL;
+
+    collision_object_add(environmentList, cRect, COLLISION_ENVIRONMENT_RECT);
+
+    return cRect;
+}
+
+CollisionCircle* collision_circle_init(float x, float y, short radius, Texture* texture, CollisionObjectList* environmentList)
+{
+    CollisionCircle* cCircle = malloc(sizeof(CollisionCircle));
+    cCircle->x = x;
+    cCircle->y = y;
+    cCircle->radius = radius;
+    cCircle->texture = (texture != NULL) ? texture : NULL;
+
+    collision_object_add(environmentList, cCircle, COLLISION_ENVIRONMENT_CIRCLE);
+
+    return cCircle;
 }
 //*************************************************************
 
@@ -1118,9 +1192,22 @@ bool circle_detect_collision(Circle* circle, CollisionObjectList* colList)
             if ((circle->x + circle->radius < bb->x) || (circle->y + circle->radius < bb->y) || (circle->x + circle->radius > bb->width) || (circle->y + circle->radius > bb->height))
                 return true;
         }
+        else if (colList->type[i] == COLLISION_ENVIRONMENT_RECT)
+        {
+            CollisionRect* cR = (CollisionRect *)colList->obj[i];
+            if (circle_box_collision(circle->x, circle->y, circle->radius, &cR->rect))
+                return true;
+        }
+        else if (colList->type[i] == COLLISION_ENVIRONMENT_CIRCLE)
+        {
+            CollisionCircle* cC = (CollisionCircle *)colList->obj[i];
+            if (radii_collision(circle->x, circle->y, circle->radius, cC->x, cC->y, cC->radius))
+                return true;
+        }
         else if (colList->type[i] == COLLISION_CIRCLE)
         {
             Circle *c = (Circle *)colList->obj[i];
+            if (c == circle) continue; //testing for same entity
             if (radii_collision(circle->x, circle->y, circle->radius, c->x, c->y, c->radius))
                 return true;
         }
@@ -1202,6 +1289,26 @@ bool box_detect_collision(SDL_Rect* box, CollisionObjectList* colList, short *se
                 return true;
             }
         }
+        else if (colList->type[i] == COLLISION_ENVIRONMENT_RECT)
+        {
+            CollisionRect* cR = (CollisionRect *)colList->obj[i];
+            if (box_box_collision(box, &cR->rect))
+            {
+                if (sendBack != NULL && sendBackType == COLLISION_RETURN_FLOOR) *sendBack = cR->rect.y;
+                else if(sendBack != NULL && sendBackType == COLLISION_RETURN_CEILING) *sendBack = cR->rect.y + cR->rect.h;
+                return true;
+            }
+        }
+        else if (colList->type[i] == COLLISION_ENVIRONMENT_CIRCLE)
+        {
+            CollisionCircle* cC = (CollisionCircle *)colList->obj[i];
+            if (circle_box_collision(cC->x, cC->y, cC->radius, box))
+            {
+                if (sendBack != NULL && sendBackType == COLLISION_RETURN_FLOOR)  *sendBack = cC->y - cC->radius;
+                else if(sendBack != NULL && sendBackType == COLLISION_RETURN_CEILING) *sendBack = cC->y + cC->radius;
+                return true;
+            }
+        }
         else if (colList->type[i] == COLLISION_CIRCLE)
         {
             Circle *c = (Circle *)colList->obj[i];
@@ -1215,6 +1322,7 @@ bool box_detect_collision(SDL_Rect* box, CollisionObjectList* colList, short *se
         else if (colList->type[i] == COLLISION_BOX)
         {
             Box *b = (Box *)colList->obj[i];
+            if (&b->rect == box) continue; //testing if the same entity
             if (box_box_collision(box, &b->rect))
             {
                 if (sendBack != NULL && sendBackType == COLLISION_RETURN_FLOOR) *sendBack = b->rect.y;
@@ -1250,7 +1358,7 @@ void box_move_platformer(Box* box, CollisionObjectList* colList, float deltaTime
 
     b->x += b->velX * deltaTime;
     b->rect.x = b->x;
-    if (box_detect_collision(box, colList, NULL, COLLISION_RETURN_NONE))
+    if (box_detect_collision(&box->rect, colList, NULL, COLLISION_RETURN_NONE))
     {
         b->x -= b->velX * deltaTime;
         b->rect.x = b->x;
@@ -1259,7 +1367,7 @@ void box_move_platformer(Box* box, CollisionObjectList* colList, float deltaTime
 
     //handle vertical movement
     if (b->velY > -1) box->rect.y += 1;
-    if (box_detect_collision(box, colList, NULL, COLLISION_RETURN_NONE)) //checking for floor on floor state
+    if (box_detect_collision(&box->rect, colList, NULL, COLLISION_RETURN_NONE)) //checking for floor on floor state
     {
         b->rect.y -= 1;
         b->velY = 0;
@@ -1274,7 +1382,7 @@ void box_move_platformer(Box* box, CollisionObjectList* colList, float deltaTime
             short floorCol = 0;  //landing of floor find the point of collision
             b->y += b->velY * deltaTime * 2;
             b->rect.y = b->y;
-            if (box_detect_collision(b, colList, &floorCol, COLLISION_RETURN_FLOOR))
+            if (box_detect_collision(&b->rect, colList, &floorCol, COLLISION_RETURN_FLOOR))
             {
                 b->y = floorCol - b->rect.h;
                 b->rect.y = b->y;
@@ -1292,7 +1400,7 @@ void box_move_platformer(Box* box, CollisionObjectList* colList, float deltaTime
             b->y += b->velY * deltaTime * 2;
             b->rect.y = b->y;
             short ceilingCol = 0;
-            if (box_detect_collision(box, colList, &ceilingCol, COLLISION_RETURN_CEILING)) //checking for collision above and if so cutting jump short
+            if (box_detect_collision(&box->rect, colList, &ceilingCol, COLLISION_RETURN_CEILING)) //checking for collision above and if so cutting jump short
             {
                 b->y = ceilingCol +1;
                 b->rect.y = b->y;
@@ -1314,7 +1422,7 @@ void box_move_platformer(Box* box, CollisionObjectList* colList, float deltaTime
             b->rect.y = b->y;
 
             short ceilingCol = 0;
-            if (box_detect_collision(box, colList, &ceilingCol, COLLISION_RETURN_CEILING)) //checking for collision above and if so cutting jump short
+            if (box_detect_collision(&box->rect, colList, &ceilingCol, COLLISION_RETURN_CEILING)) //checking for collision above and if so cutting jump short
             {
                 b->y = ceilingCol +1;
                 b->rect.y = b->y;
@@ -1331,7 +1439,7 @@ void box_move_free(Box* box, CollisionObjectList* colList, float deltaTime, enum
     box->x += box->velX * deltaTime;
     box->rect.x = box->x;
     if (colList != NULL)
-        if (box_detect_collision(box, colList, NULL, COLLISION_RETURN_NONE))
+        if (box_detect_collision(&box->rect, colList, NULL, COLLISION_RETURN_NONE))
         {
             if (collEffect == CONTACT_BOUNCE_OFF)
                 box->x -= box->velX * deltaTime * 2;
@@ -1342,7 +1450,7 @@ void box_move_free(Box* box, CollisionObjectList* colList, float deltaTime, enum
     box->y += box->velY * deltaTime;
     box->rect.y = box->y;
     if (colList != NULL)
-        if (box_detect_collision(box, colList, NULL, COLLISION_RETURN_NONE))
+        if (box_detect_collision(&box->rect, colList, NULL, COLLISION_RETURN_NONE))
         {
             if (collEffect == CONTACT_BOUNCE_OFF)
                 box->y -= box->velY * deltaTime * 2;

@@ -145,7 +145,9 @@ typedef enum COLLISION_TYPE
 {
     COLLISION_CIRCLE,
     COLLISION_BOX,
-    COLLISION_BOUNDING_BOX  //i.e screen of other square enclosing spaces
+    COLLISION_BOUNDING_BOX,  //i.e screen of other square enclosing spaces
+    COLLISION_ENVIRONMENT_RECT,
+    COLLISION_ENVIRONMENT_CIRCLE
 } COLLISION_TYPE;
 //Different type of collision to interact with
 
@@ -154,13 +156,13 @@ typedef struct
     void** obj;
     COLLISION_TYPE* type;
     uint32_t totalObjects;
-
 } CollisionObjectList;
 
 CollisionObjectList* collision_object_list_init();
 void free_collision_object_list(CollisionObjectList* colList);
 void collision_object_add(CollisionObjectList* colList, void* object, COLLISION_TYPE type);
-
+//for environment collision objects
+void draw_collision_environment(CollisionObjectList* environmentList, SDL_Renderer* renderer);
 
 typedef enum MOTION_TYPE
 {
@@ -182,6 +184,7 @@ typedef enum COLLISION_CONTACT_EFFECT  //Effects how interaction on collision
 } BOUNCE_TYPE;
 
 
+/* Environment Collision, add straight into the environment list */
 // Bounding box
 typedef struct
 {
@@ -189,9 +192,24 @@ typedef struct
 } BoundingBox;
 
 //init boundingBox
-BoundingBox bounding_box_init_screen(short screenWidth, short screenHeight);
-BoundingBox bounding_box_init(short x, short y, short width, short height);
+BoundingBox* bounding_box_init_screen(short screenWidth, short screenHeight, CollisionObjectList* environmentList);
+BoundingBox* bounding_box_init(short x, short y, short width, short height, CollisionObjectList* environmentList);
 
+typedef struct
+{
+    SDL_Rect rect;
+    Texture *texture; //if NULL draw green
+} CollisionRect;
+CollisionRect* collision_rect_init(short x, short y, short width, short height, Texture* texture, CollisionObjectList* environmentList);
+
+typedef struct
+{
+    float x, y;  //center of circle
+    short radius;
+    Texture *texture; //if NULL draws green
+} CollisionCircle;
+CollisionCircle* collision_circle_init(float x, float y, short radius, Texture* texture, CollisionObjectList* environmentList);
+/* ------ */
 
 // Circle
 typedef struct

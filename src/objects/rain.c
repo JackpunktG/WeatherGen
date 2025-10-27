@@ -260,8 +260,8 @@ LightningMachine* lightning_machine_init(uint8_t maxStrands, uint32_t frequence,
     lm->ready = false;
     lm->serverity = serverity;
 
-    lm->intervalTime = 0.25;
-    lm->intervalCooldownTimer = 0.25;
+    lm->intervalTime = 0.02;
+    lm->intervalCooldownTimer = 0.02;
     srand((unsigned)time(NULL));
 
     return lm;
@@ -283,7 +283,7 @@ LightningStrand* spawn_lightning(LightningMachine* lm, float x, float y, uint8_t
     LightningStrand* ls = arena_alloc(lm->arena, sizeof(LightningStrand));
 
     ls->intensity = intensity;
-    ls->maxCount = intensity * 6 + (rand() % 20); //slightly random amount of lighting point -- higher intesity more
+    ls->maxCount = intensity *3 + (rand() % 20); //slightly random amount of lighting point -- higher intesity more
 
     ls->lightningPoints = arena_alloc(lm->arena, ls->maxCount * sizeof(Lightning*));
     if (!ls->lightningPoints)
@@ -323,8 +323,8 @@ void lightning_machine_reset(LightningMachine* lm)
     lm->strandCount = 0;
     lm->ready = false;
 
-    lm->intervalTime = 0.25;
-    lm->intervalCooldownTimer = 0.25;
+    lm->intervalTime = 0.02;
+    lm->intervalCooldownTimer = 0.02;
     lm->coolDownTimer = 0.05;
 
 }
@@ -430,12 +430,12 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
 {
     if (lm->strandCount < 0 || !lm || !weatherBox) return;
 
-    /*lm->intervalCooldownTimer -= deltaTime;
+    lm->intervalCooldownTimer -= deltaTime;
     if (lm->intervalCooldownTimer < 0)
         lm->intervalCooldownTimer = lm->intervalTime;
     else
         return;  //return if interval timer has not been meet
-    */
+
     for (int i = 0; i < lm->strandCount; ++i)
     {
         LightningStrand* ls = lm->strands[i];
@@ -524,7 +524,7 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
     {
         LightningStrand* ls = lm->strands[i];
 
-        if (ls->count < 10 || ls->intensity < 3 || ls->count > (ls->maxCount - 5))
+        if (ls->count < 10 || ls->intensity < 3 || (ls->intensity > 4 && ls->y > weatherBox->height))
             continue;
 
         //roll dice to create another strand
@@ -550,21 +550,34 @@ void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_Renderer* rende
             if (ls->intensity < 3 && k < 4) continue; //skipping the set up points
 
 
-            /*  JANKY FIX FOR POINTS BEING FREE OR OVERWRITTEN EARLY --- REQUIRES DEBUGGING   */
+            /*  JANKY FIX FOR POINTS BEING FREE OR OVERWRITTEN EARLY --- REQUIRES DEBUGGING*/
             if (ls->lightningPoints[k-1]->x < wB->x ||  ls->lightningPoints[k-1]->y <  wB->x || ls->lightningPoints[k]->x <  wB->x ||  ls->lightningPoints[k]->y <  wB->x )
             {
-                printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
-                printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
+                //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
+                //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
                 continue;
             }
             if (ls->lightningPoints[k-1]->x > (wB->width + wB->x) ||  ls->lightningPoints[k-1]->y > (wB->width + wB->x) || ls->lightningPoints[k]->x >  (wB->width + wB->x) ||  ls->lightningPoints[k]->y >  (wB->width + wB->x) )
             {
-                printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
-                printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
+                //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
+                //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
                 continue;
             }
 
-            draw_line_float(renderer, ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y, ls->lightningPoints[k]->x, ls->lightningPoints[k]->y, COLOR[PURPLE]);
+
+            if (ls->intensity > 5)
+            {
+                draw_line_float(renderer, ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y, ls->lightningPoints[k]->x, ls->lightningPoints[k]->y, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k-1]->x -1, ls->lightningPoints[k-1]->y - 1, ls->lightningPoints[k]->x -1, ls->lightningPoints[k]->y -1, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k-1]->x +1, ls->lightningPoints[k-1]->y + 1, ls->lightningPoints[k]->x +1, ls->lightningPoints[k]->y + 1, COLOR[PURPLE]);
+            }
+            else if (ls->intensity > 2)
+            {
+                draw_line_float(renderer, ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y, ls->lightningPoints[k]->x, ls->lightningPoints[k]->y, COLOR[PURPLE]);
+
+                draw_line_float(renderer, ls->lightningPoints[k-1]->x -1, ls->lightningPoints[k-1]->y - 1, ls->lightningPoints[k]->x -1, ls->lightningPoints[k]->y -1, COLOR[PURPLE]);
+            }
+            else draw_line_float(renderer, ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y, ls->lightningPoints[k]->x, ls->lightningPoints[k]->y, COLOR[PURPLE]);
             //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
             //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
         }
