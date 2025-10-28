@@ -45,6 +45,18 @@ bool init_SDL()
     return true;
 }
 
+bool init_resizable_window(SDL_Window** window, const char* title, uint32_t width, uint32_t height)
+{
+    *window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN);
+    if (*window == NULL)
+    {
+        printf("ERROR init window! MSG: %s\n", SDL_GetError());
+        return false;
+    }
+    return true;
+}
+
+
 
 bool init_sized_window(SDL_Window** window, const char* title, uint32_t width, uint32_t height)
 {
@@ -111,6 +123,15 @@ bool init_SDL2_basic(WindowConstSize* windowStruct, const char* title, uint32_t 
 
     if (!init_renderer(windowStruct->window, &windowStruct->renderer)) return false;
 
+    windowStruct->width = width;
+    windowStruct->height = height;
+    windowStruct->fullscreen = false;
+
+    windowStruct->camera.x = 0;
+    windowStruct->camera.y = 0;
+    windowStruct->camera.w = width;
+    windowStruct->camera.h = height;
+
     return true;
 }
 
@@ -121,6 +142,15 @@ bool init_SDL2_basic_vsync(WindowConstSize* windowStruct, const char* title, uin
     if (!init_sized_window(&windowStruct->window, title, width, height)) return false;
 
     if (!init_renderer_vsync(windowStruct->window, &windowStruct->renderer)) return false;
+
+    windowStruct->width = width;
+    windowStruct->height = height;
+    windowStruct->fullscreen = false;
+
+    windowStruct->camera.x = 0;
+    windowStruct->camera.y = 0;
+    windowStruct->camera.w = width;
+    windowStruct->camera.h = height;
 
     return true;
 }
@@ -140,6 +170,49 @@ void free_SDL2(WindowConstSize* windowStruct)
     }
     IMG_Quit();
     SDL_Quit();
+}
+
+
+void window_size_update(WindowConstSize* windowStruct, SDL_Event* e)
+{
+    if (e->type != SDL_KEYDOWN)
+        return;
+
+    if (e->key.keysym.sym == SDLK_ESCAPE)
+    {
+        if(windowStruct->fullscreen)
+        {
+            SDL_SetWindowFullscreen(windowStruct->window, 0);
+            SDL_RestoreWindow(windowStruct->window);
+
+            SDL_SetWindowSize(windowStruct->window, windowStruct->width, windowStruct->height);
+            SDL_SetWindowPosition(windowStruct->window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+            windowStruct->fullscreen = false;
+        }
+        else
+        {
+            SDL_SetWindowFullscreen(windowStruct->window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+            windowStruct->fullscreen = true;
+
+        }
+
+    }
+    else if (e->key.keysym.sym == SDLK_p)
+    {
+        if (windowStruct->width == 1980)
+        {
+            SDL_SetWindowSize(windowStruct->window, 1280, 720);
+            windowStruct->width = 1280;
+            windowStruct->height = 720;
+        }
+        else
+        {
+            SDL_SetWindowSize(windowStruct->window, 1980, 1080);
+            windowStruct->width = 1980;
+            windowStruct->height = 1080;
+        }
+    }
+
 }
 
 //*************************************************************

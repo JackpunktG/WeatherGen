@@ -40,6 +40,10 @@ typedef struct
 {
     SDL_Window* window;
     SDL_Renderer* renderer;
+    SDL_Rect camera; //for camera view
+    bool fullscreen;
+    uint32_t width;
+    uint32_t height;
 } WindowConstSize;
 
 // function to start a sized window with renderer
@@ -50,11 +54,12 @@ bool init_SDL2_basic_vsync(WindowConstSize* windowStruct, const char* title, uin
 
 // Free SDL2 resources
 void free_SDL2(WindowConstSize* windowStruct);
-
+//esc toggles fullscreen on and off, p cycles through the screen size options
+void window_size_update(WindowConstSize* windowStruct, SDL_Event* e);
 
 // Init TTF
 bool init_TTF();
-//need to then call TTF_Font* fone = TTF_OpenFont("path to font", font size);
+//need to then call TTF_Font* font = TTF_OpenFont("path to font", font size);
 // Free TTF
 void free_TTF(TTF_Font* font);
 

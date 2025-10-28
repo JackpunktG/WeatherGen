@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define WINDOW_WIDTH 1200
-#define WINDOW_HEIGHT 800
+#define WINDOW_WIDTH 1280
+#define WINDOW_HEIGHT 720
 
 int main(int argc, char* argv[])
 {
@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
             {
                 running = false;
             }
-
+            window_size_update(&window, &e);
             motion_handle_event_wasd(&stickBro, OBJ_BOX, &e, MOTION_PLATFORMER);
             motion_handle_event_arrow_keys(&dot, OBJ_CIRCLE, &e, MOTION_FREE);
         }
