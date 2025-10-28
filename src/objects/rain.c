@@ -210,6 +210,55 @@ void rain_render(RainMachine* rm, SDL_Renderer* renderer)
     }
 }
 
+void lightning_rain_render(RainMachine* rm, SDL_Renderer* renderer)
+{
+    if (!rm || !renderer) return;
+
+
+    for (size_t i = 0; i < rm->count; i++)
+    {
+        Droplet* d = rm->drops[i];
+        uint8_t r = (d->color.r + 55 > 255) ? 255 : d->color.r + 55;
+        uint8_t g = (d->color.g + 55 > 255) ? 255 : d->color.g + 55;
+        uint8_t b = (d->color.b + 55 > 255) ? 255 : d->color.b + 55;
+        SDL_Color brighterPallet = {r, g, b, d->color.a};
+        if (!d->dropDeath)
+        {
+            SDL_FRect rect = {d->x, d->y, d->size, d->size * 3};
+            draw_filled_rect(renderer, NULL, &rect, brighterPallet);
+        }
+        else if (d->dropDeath && d->vY > 0)
+        {
+            for (int j = 0; j < d->size; j++)
+                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)), d->y - (d->size + (rand() % d->size)), brighterPallet);
+        }
+    }
+}
+
+void lightning_fade_rain_render(RainMachine* rm, uint8_t fadeLevel, SDL_Renderer* renderer)
+{
+    if (!rm || !renderer) return;
+
+
+    for (size_t i = 0; i < rm->count; i++)
+    {
+        Droplet* d = rm->drops[i];
+        uint8_t r = (d->color.r + 55 - fadeLevel > 255) ? 255 : d->color.r + 55 - fadeLevel;
+        uint8_t g = (d->color.g + 55 - fadeLevel > 255) ? 255 : d->color.g + 55 - fadeLevel;
+        uint8_t b = (d->color.b + 55 - fadeLevel > 255) ? 255 : d->color.b + 55 - fadeLevel;
+        SDL_Color brighterPallet = {r, g, b, d->color.a};
+        if (!d->dropDeath)
+        {
+            SDL_FRect rect = {d->x, d->y, d->size, d->size * 3};
+            draw_filled_rect(renderer, NULL, &rect, brighterPallet);
+        }
+        else if (d->dropDeath && d->vY > 0)
+        {
+            for (int j = 0; j < d->size; j++)
+                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)), d->y - (d->size + (rand() % d->size)), brighterPallet);
+        }
+    }
+}
 
 void rainmachine_destroy(RainMachine* rm)
 {
@@ -260,8 +309,8 @@ LightningMachine* lightning_machine_init(uint8_t maxStrands, uint32_t frequence,
     lm->ready = false;
     lm->serverity = serverity;
 
-    lm->intervalTime = 0.02;
-    lm->intervalCooldownTimer = 0.02;
+    lm->intervalTime = 0.016;
+    lm->intervalCooldownTimer = 0.016;
     srand((unsigned)time(NULL));
 
     return lm;
@@ -323,9 +372,9 @@ void lightning_machine_reset(LightningMachine* lm)
     lm->strandCount = 0;
     lm->ready = false;
 
-    lm->intervalTime = 0.02;
-    lm->intervalCooldownTimer = 0.02;
-    lm->coolDownTimer = 0.05;
+    lm->intervalTime = 0.016;
+    lm->intervalCooldownTimer = 0.016;
+    lm->coolDownTimer = lm->frequence;
 
 }
 
@@ -428,7 +477,7 @@ void start_small_strand(LightningStrand* ls, Lightning* l)
 
 void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float deltaTime)
 {
-    if (lm->strandCount < 0 || !lm || !weatherBox) return;
+    if (lm->strandCount == 0 || !lm || !weatherBox) return;
 
     lm->intervalCooldownTimer -= deltaTime;
     if (lm->intervalCooldownTimer < 0)
@@ -520,6 +569,8 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
 
     }
 
+    if (lm->strandCount >= lm->strandMaxCount)
+        return;
     for (int i = 0; i < lm->strandCount; ++i)
     {
         LightningStrand* ls = lm->strands[i];
@@ -538,7 +589,7 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
 
 void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_Renderer* renderer)
 {
-    if (lm->strandCount < 0 || !lm || !renderer) return;
+    if (lm->strandCount == 0 || !lm || !renderer) return;
 
     //printf("--------- LOOP ----------------\n");
 
@@ -548,7 +599,6 @@ void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_Renderer* rende
         for (int k = 1; k < ls->count; ++k)
         {
             if (ls->intensity < 3 && k < 4) continue; //skipping the set up points
-
 
             /*  JANKY FIX FOR POINTS BEING FREE OR OVERWRITTEN EARLY --- REQUIRES DEBUGGING*/
             if (ls->lightningPoints[k-1]->x < wB->x ||  ls->lightningPoints[k-1]->y <  wB->x || ls->lightningPoints[k]->x <  wB->x ||  ls->lightningPoints[k]->y <  wB->x )
@@ -585,5 +635,75 @@ void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_Renderer* rende
     }
 }
 
+WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t lightningMaxStrands, uint32_t lightningFrequence, uint8_t lightningServerity, BoundingBox* weatherBox, CollisionObjectList* environmentCollision)
+{
+    WeatherMachine* wm = malloc(sizeof(WeatherMachine));
+    if (!wm)
+    {
+        printf("ERROR - creating WeatherMachine\n");
+        return NULL;
+    }
+
+    wm->rainMachine = rainmachine_init(rainMaxCount);
+    if (!wm->rainMachine)
+    {
+        free(wm);
+        return NULL;
+    }
+
+    wm->lightningMachine = lightning_machine_init(lightningMaxStrands, lightningFrequence, lightningServerity);
+    if (!wm->lightningMachine)
+    {
+        rainmachine_destroy(wm->rainMachine);
+        free(wm);
+        return NULL;
+    }
+    wm->weatherBox = weatherBox;
+    wm->environmentCollision = environmentCollision;
+
+    wm->lightningAfterBoost = false;
+    wm->fadeLevel = 0;
+    wm->lightningAfterBoostTimer = 0.4f;
 
 
+    return wm;
+}
+
+void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, float deltaTime)
+{
+    if (!wm || !renderer) return;
+
+    if (wm->lightningMachine->strandCount > 0)
+    {
+        lightning_rain_render(wm->rainMachine, renderer);
+        lightning_render(wm->lightningMachine, wm->weatherBox, renderer);
+        wm->lightningAfterBoost = true;
+    }
+    else if (wm->lightningAfterBoost)
+    {
+        wm->lightningAfterBoostTimer -= deltaTime;
+        if (wm->fadeLevel < 55) wm->fadeLevel = (1 + (rand() % 2) > 1) ? wm->fadeLevel + 3 : wm->fadeLevel + 2;
+        printf("HERE fade lvl %d\n", wm->fadeLevel);
+        lightning_fade_rain_render(wm->rainMachine, wm->fadeLevel, renderer);
+
+        if (wm->lightningAfterBoostTimer <= 0)
+        {
+            printf("RESET\n");
+            wm->lightningAfterBoost = false;
+            wm->lightningAfterBoostTimer = 0.4f;
+            wm->fadeLevel = 0;
+        }
+    }
+    else
+        rain_render(wm->rainMachine, renderer);
+}
+
+void weather_machine_destroy(WeatherMachine* wm)
+{
+    if (!wm) return;
+
+    rainmachine_destroy(wm->rainMachine);
+    lightning_machine_destroy(wm->lightningMachine);
+
+    free(wm);
+}

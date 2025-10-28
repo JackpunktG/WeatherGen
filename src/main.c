@@ -26,9 +26,10 @@ int main(int argc, char* argv[])
     Box stickBro = box_init_platformer_movement(500, 500, 75, 125, 0.15f, 400, 450);
     collision_object_add(environmentCollision, &stickBro, COLLISION_BOX);
 
-    RainMachine* rm = rainmachine_init(100000);
-    if (!rm) return 1;
-    LightningMachine* lm = lightning_machine_init(18, 2, 8);
+    WeatherMachine* wm = weather_machine_init(100000, 4, 2, 8, screenBox, environmentCollision);
+    //RainMachine* rm = rainmachine_init(100000);
+    //if (!rm) return 1;
+    //LightningMachine* lm = lightning_machine_init(18, 2, 8);
 
     bool running = true;
     SDL_Event e;
@@ -59,17 +60,16 @@ int main(int argc, char* argv[])
         float deltaTime = (currentTime - lastTime) / 1000.0f;
         lastTime = currentTime;
 
-        rain_spwan(rm, screenBox, x, deltaTime);
-        rain_update(rm, screenBox, deltaTime, w, environmentCollision);
-        rain_render(rm, window.renderer);
+        rain_spwan(wm->rainMachine, screenBox, x, deltaTime);
+        rain_update(wm->rainMachine, screenBox, deltaTime, w, environmentCollision);
 
-        lightning_machine_update(lm, screenBox, deltaTime);
-        lightning_strand_grow(lm, screenBox, deltaTime);
+        lightning_machine_update(wm->lightningMachine, screenBox, deltaTime);
+        lightning_strand_grow(wm->lightningMachine, screenBox, deltaTime);
 
         box_move_platformer(&stickBro, environmentCollision, deltaTime, CONTACT_STOP);
         circle_move_free(&dot, environmentCollision, deltaTime, CONTACT_BOUNCE_OFF);
 
-        lightning_render(lm, screenBox, window.renderer);
+        weather_machine_render(wm, window.renderer, deltaTime);
         draw_collision_environment(environmentCollision, window.renderer);
         box_filled_draw(&stickBro, window.renderer, COLOR[LIGHT_GRAY]);
         circle_filled_draw(&dot, window.renderer, COLOR[TEAL]);
@@ -77,8 +77,7 @@ int main(int argc, char* argv[])
         SDL_RenderPresent(window.renderer);
     }
 
-    rainmachine_destroy(rm);
-    lightning_machine_destroy(lm);
+    weather_machine_destroy(wm);
     free_SDL2(&window);
 
     return 0;

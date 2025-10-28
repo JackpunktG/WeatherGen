@@ -85,5 +85,22 @@ void lightning_render(LightningMachine* lm, BoundingBox* weatherBox, SDL_Rendere
 
 void lightning_machine_destroy(LightningMachine* lm);
 
+
+
+typedef struct
+{
+    BoundingBox* weatherBox;
+    RainMachine* rainMachine;
+    LightningMachine* lightningMachine;
+    bool lightningAfterBoost;  //true just as lightning has ended to fade lighting effect
+    uint8_t fadeLevel;          //level of fade for after lightning effect
+    float lightningAfterBoostTimer; //timer for the after boost effect
+
+    CollisionObjectList* environmentCollision;
+} WeatherMachine;
+
+WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t lightningMaxStrands, uint32_t lightningFrequence, uint8_t lightningServerity, BoundingBox* weatherBox, CollisionObjectList* environmentCollision);
+void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, float deltaTime);
+void weather_machine_destroy(WeatherMachine* wm);
 #endif
 
