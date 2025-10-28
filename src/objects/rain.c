@@ -80,7 +80,7 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
             d->color.r = 125 + (rand() % 10);
             d->color.g = 150 + (rand() % 15);
             d->color.b = 208 + (rand() % 20);
-            d->color.a = 180 + (rand() % 50);
+            d->color.a = 230 + (rand() % 26);
             d->vY = rand_float(125.0f, 130.0f);
         }
         else if (count > 1000 && i % 4 == 0 || (count > 1200 && i % 3 == 0) || count > 1400 && i % 2 == 0 || count > 2000) //med rain
@@ -89,25 +89,25 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
             d->color.r = 156 + (rand() % 10);
             d->color.g = 176 + (rand() % 10);
             d->color.b = 235 + (rand() % 20);
-            d->color.a = 210 + (rand() % 26);
+            d->color.a = 220 + (rand() % 36);
             d->vY = rand_float(122.0f, 127.0f);
         }
         else if ((count > 500 && i % 3 == 0) || (count > 800 && i % 2 == 0) || count > 1200)
         {
             d->size = 1 + (rand() % 4);
-            d->color.r = 155 + (rand() % 35);
-            d->color.g = 175 + (rand() % 35);
+            d->color.r = 145 + (rand() % 35);
+            d->color.g = 165 + (rand() % 35);
             d->color.b = 201 + (rand() % 35);
-            d->color.a = 190 + (rand() % 46);
+            d->color.a = 170 + (rand() % 46);
             d->vY = rand_float(120.0f, 125.0f);
         }
         else  //drizzling
         {
             d->size = 1 + (rand() % 3);
-            d->color.r = 170 + (rand() % 35);
-            d->color.g = 190 + (rand() % 35);
+            d->color.r = 150 + (rand() % 35);
+            d->color.g = 170 + (rand() % 35);
             d->color.b = 206 + (rand() % 35);
-            d->color.a = 185 + (rand() % 56);
+            d->color.a = 150 + (rand() % 20);
             d->vY = 120;
         }
         d->dropDeath = false;

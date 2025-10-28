@@ -68,6 +68,7 @@ bool init_renderer(SDL_Window* window, SDL_Renderer** renderer)
     }
     else
     {
+        SDL_SetRenderDrawBlendMode(*renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(*renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         int imgFlags = IMG_INIT_PNG;
         if (!(IMG_Init(imgFlags) & imgFlags))
@@ -90,6 +91,7 @@ bool init_renderer_vsync(SDL_Window* window, SDL_Renderer** renderer)
     }
     else
     {
+        SDL_SetRenderDrawBlendMode(*renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(*renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         int imgFlags = IMG_INIT_PNG;
         if (!(IMG_Init(imgFlags) & imgFlags))
