@@ -173,10 +173,10 @@ void free_SDL2(WindowConstSize* windowStruct)
 }
 
 
-void window_size_update(WindowConstSize* windowStruct, SDL_Event* e)
+bool window_size_update(WindowConstSize* windowStruct, SDL_Event* e)
 {
     if (e->type != SDL_KEYDOWN)
-        return;
+        return false;
 
     if (e->key.keysym.sym == SDLK_ESCAPE)
     {
@@ -195,6 +195,7 @@ void window_size_update(WindowConstSize* windowStruct, SDL_Event* e)
             windowStruct->fullscreen = true;
 
         }
+        return true;
 
     }
     else if (e->key.keysym.sym == SDLK_p)
@@ -203,18 +204,56 @@ void window_size_update(WindowConstSize* windowStruct, SDL_Event* e)
         {
             SDL_SetWindowSize(windowStruct->window, 1280, 720);
             windowStruct->width = 1280;
+            windowStruct->camera.w = 1280;
             windowStruct->height = 720;
+            windowStruct->camera.h = 720;
         }
         else
         {
             SDL_SetWindowSize(windowStruct->window, 1980, 1080);
             windowStruct->width = 1980;
+            windowStruct->camera.w = 1980;
             windowStruct->height = 1080;
+            windowStruct->camera.h = 1080;
         }
+        return true;
     }
-
+    return false;
 }
 
+void camera_update(WindowConstSize* windowStruct, void* mainActor, enum OBJ_TYPE type, const uint32_t levelWidth, const uint32_t levelHeight)
+{
+    switch (type)
+    {
+    case OBJ_BOX:
+    {
+        Box* b = (Box *)mainActor;
+        windowStruct->camera.x = (b->x + (float)b->rect.w / 2) - (float)windowStruct->width / 2;
+        windowStruct->camera.y = (b->y + (float)b->rect.h / 2) - (float)windowStruct->height / 2;
+        break;
+    }
+    case OBJ_CIRCLE:
+    {
+        Circle* c = (Circle *)mainActor;
+        windowStruct->camera.x = c->x - (float)windowStruct->width / 2;
+        windowStruct->camera.y = c->y - (float)windowStruct->height / 2;
+        break;
+    }
+    }
+
+    //checking x-axis
+    if (windowStruct->camera.x + windowStruct->camera.w > levelWidth)
+        windowStruct->camera.x = levelWidth - windowStruct->camera.w;
+    else if (windowStruct->camera.x < 0)
+        windowStruct->camera.x = 0;
+
+    //check y-axis
+    if (windowStruct->camera.y + windowStruct->camera.h > levelHeight)
+        windowStruct->camera.y = levelHeight - windowStruct->camera.h;
+    else if (windowStruct->camera.y < 0)
+        windowStruct->camera.y = 0;
+
+}
 //*************************************************************
 
 // TTF functions
@@ -817,7 +856,9 @@ void collision_object_add(CollisionObjectList* colList, void* object, COLLISION_
     colList->totalObjects++;
 }
 
-void draw_collision_environment(CollisionObjectList* environmentList, SDL_Renderer* renderer)
+void draw_basic_collision_rect(CollisionRect* cRect, SDL_FRect* camera, SDL_Renderer* renderer);
+void draw_basic_collsion_circle(CollisionCircle* cCircle, SDL_FRect* camera, SDL_Renderer* renderer);
+void draw_collision_environment(CollisionObjectList* environmentList, SDL_FRect* camera, SDL_Renderer* renderer)
 {
     for (int i = 0; i < environmentList->totalObjects; i++)
     {
@@ -829,14 +870,14 @@ void draw_collision_environment(CollisionObjectList* environmentList, SDL_Render
         case COLLISION_ENVIRONMENT_RECT:
         {
             CollisionRect* cR = (CollisionRect *)environmentList->obj[i];
-            if (cR->texture == NULL) draw_filled_rect(renderer, &cR->rect, NULL, COLOR[GREEN]);
+            if (cR->texture == NULL) draw_basic_collision_rect(cR, camera, renderer);
             else render_texture(cR->texture, renderer, cR->rect.x, cR->rect.y);
             break;
         }
         case COLLISION_ENVIRONMENT_CIRCLE:
         {
             CollisionCircle* cC = (CollisionCircle *)environmentList->obj[i];
-            if (cC->texture == NULL) draw_filled_circle(renderer, cC->x, cC->y, cC->radius, COLOR[GREEN]);
+            if (cC->texture == NULL) draw_basic_collsion_circle(cC, camera, renderer);
             else render_texture(cC->texture, renderer, cC->x, cC->y);
             break;
         }
@@ -1235,6 +1276,12 @@ CollisionRect* collision_rect_init(short x, short y, short width, short height, 
     return cRect;
 }
 
+void draw_basic_collision_rect(CollisionRect* cRect, SDL_FRect* camera, SDL_Renderer* renderer)
+{
+    SDL_FRect renderRect = {cRect->rect.x - camera->x, cRect->rect.y - camera->y, cRect->rect.w, cRect->rect.h};
+    draw_filled_rect(renderer, NULL, &renderRect, COLOR[GREEN]);
+}
+
 CollisionCircle* collision_circle_init(float x, float y, short radius, Texture* texture, CollisionObjectList* environmentList)
 {
     CollisionCircle* cCircle = malloc(sizeof(CollisionCircle));
@@ -1247,6 +1294,12 @@ CollisionCircle* collision_circle_init(float x, float y, short radius, Texture* 
 
     return cCircle;
 }
+
+void draw_basic_collsion_circle(CollisionCircle* cCircle, SDL_FRect* camera, SDL_Renderer* renderer)
+{
+    draw_filled_circle(renderer, (int)(cCircle->x - camera->x), (int)(cCircle->y - camera->y), cCircle->radius, COLOR[GREEN]);
+}
+
 //*************************************************************
 
 // Circle functions
@@ -1323,14 +1376,14 @@ void circle_move_free(Circle* circle, CollisionObjectList* colList, float deltaT
     }
 }
 
-void circle_filled_draw(Circle* circle, SDL_Renderer *renderer, SDL_Color colour)
+void circle_filled_draw(Circle* circle, SDL_FRect* camera, SDL_Renderer *renderer, SDL_Color colour)
 {
-    draw_filled_circle(renderer, circle->x, circle->y, circle->radius, colour);
+    draw_filled_circle(renderer, circle->x - camera->x, circle->y - camera->y, circle->radius, colour);
 }
 
-void circle_outlined_draw(Circle* circle, SDL_Renderer *renderer, SDL_Color colour)
+void circle_outlined_draw(Circle* circle, SDL_FRect* camera, SDL_Renderer *renderer, SDL_Color colour)
 {
-    draw_outlined_circle(renderer, circle->x, circle->y, circle->radius, colour);
+    draw_outlined_circle(renderer, circle->x - camera->x, circle->y - camera->y, circle->radius, colour);
 }
 //*************************************************************
 
@@ -1545,7 +1598,22 @@ void box_filled_draw(Box* box, SDL_Renderer* renderer, SDL_Color color)
 {
     draw_filled_rect(renderer, &box->rect, NULL, color);
 }
+static SDL_FRect world_frect_to_screen_frect(const SDL_FRect *camera, const SDL_FRect *world)
+{
+    SDL_FRect screen;
+    screen.x = world->x - camera->x;
+    screen.y = world->y - camera->y;
+    screen.w = world->w;
+    screen.h = world->h;
+    return screen;
+}
+void box_filled_draw_camera(Box* box, SDL_FRect* camera, SDL_Renderer* renderer, SDL_Color color)
+{
+    SDL_FRect worldRect = { box->x, box->y, box->rect.w, box->rect.h };
+    SDL_FRect screen = world_frect_to_screen_frect(camera, &worldRect);
 
+    draw_filled_rect(renderer, NULL, &screen, color);
+}
 
 //Timer functions
 //*************************************************************

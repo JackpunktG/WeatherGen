@@ -36,7 +36,7 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
 //-value for wind goes left | + right  Value equated to pper second movenemt (Basicly xMaxVel)
 void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int wind, CollisionObjectList* collObjects);
 //render
-void rain_render(RainMachine* rm, SDL_Renderer* renderer);
+void rain_render(RainMachine* rm, SDL_FRect* camera, SDL_Renderer* renderer);
 
 //destory
 void rainmachine_destroy(RainMachine* rm);
@@ -81,7 +81,7 @@ void lightning_machine_update(LightningMachine* lm, BoundingBox* weatherBox, flo
 void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float deltaTime);
 
 //lightning Render
-void lightning_render(LightningMachine* lm, BoundingBox* weatherBox, SDL_Renderer* renderer);
+void lightning_render(LightningMachine* lm, BoundingBox* weatherBox, SDL_FRect* camera, SDL_Renderer* renderer);
 
 void lightning_machine_destroy(LightningMachine* lm);
 
@@ -100,7 +100,7 @@ typedef struct
 } WeatherMachine;
 
 WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t lightningMaxStrands, uint32_t lightningFrequence, uint8_t lightningServerity, BoundingBox* weatherBox, CollisionObjectList* environmentCollision);
-void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, float deltaTime);
+void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRect* camera, float deltaTime);
 void weather_machine_destroy(WeatherMachine* wm);
 #endif
 

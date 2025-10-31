@@ -35,12 +35,13 @@ typedef enum
 // Can input COLOR[*] to get SDL_Color
 extern const SDL_Color COLOR[TOTAL];
 
+
 // Struct to hold window and renderer information auto with IMG enabled
 typedef struct
 {
     SDL_Window* window;
     SDL_Renderer* renderer;
-    SDL_Rect camera; //for camera view
+    SDL_FRect camera; //for camera view
     bool fullscreen;
     uint32_t width;
     uint32_t height;
@@ -52,10 +53,13 @@ bool init_SDL2_basic(WindowConstSize* windowStruct, const char* title, uint32_t 
 // function to start a sized window with renderer with VSYNC
 bool init_SDL2_basic_vsync(WindowConstSize* windowStruct, const char* title, uint32_t width, uint32_t height);
 
+
+
 // Free SDL2 resources
 void free_SDL2(WindowConstSize* windowStruct);
 //esc toggles fullscreen on and off, p cycles through the screen size options
-void window_size_update(WindowConstSize* windowStruct, SDL_Event* e);
+bool window_size_update(WindowConstSize* windowStruct, SDL_Event* e); //returns true if screensize changed
+
 
 // Init TTF
 bool init_TTF();
@@ -146,6 +150,9 @@ typedef enum OBJ_TYPE
 } OBJ_TYPE;
 //OBJ to be able to move around and handle collision
 
+//call after moving - moves camera onto main actor
+void camera_update(WindowConstSize* windowStruct, void* mainActor, enum OBJ_TYPE type, const uint32_t levelWidth, const uint32_t levelHeight);
+
 typedef enum COLLISION_TYPE
 {
     COLLISION_CIRCLE,
@@ -167,7 +174,7 @@ CollisionObjectList* collision_object_list_init();
 void free_collision_object_list(CollisionObjectList* colList);
 void collision_object_add(CollisionObjectList* colList, void* object, COLLISION_TYPE type);
 //for environment collision objects
-void draw_collision_environment(CollisionObjectList* environmentList, SDL_Renderer* renderer);
+void draw_collision_environment(CollisionObjectList* environmentList, SDL_FRect* camera, SDL_Renderer* renderer);
 
 typedef enum MOTION_TYPE
 {
@@ -235,9 +242,9 @@ void circle_move_free(Circle* circle, CollisionObjectList* colList, float deltaT
 
 //quick functions for rendering circle shapes
 //draw filled circle
-void circle_filled_draw(Circle* circle, SDL_Renderer *renderer, SDL_Color colour);
+void circle_filled_draw(Circle* circle, SDL_FRect* camera, SDL_Renderer *renderer, SDL_Color colour);
 //draw outlined circle
-void circle_outlined_draw(Circle* circle, SDL_Renderer *renderer, SDL_Color colour);
+void circle_outlined_draw(Circle* circle, SDL_FRect* camera, SDL_Renderer *renderer, SDL_Color colour);
 
 
 // Box
@@ -270,7 +277,7 @@ void box_move_platformer(Box* box, CollisionObjectList* colList, float deltaTime
 //quick rendering for basic Box shapes
 void box_outlined_draw(Box* box, SDL_Renderer* renderer, SDL_Color color);
 void box_filled_draw(Box* box, SDL_Renderer* renderer, SDL_Color color);
-
+void box_filled_draw_camera(Box* box, SDL_FRect* camera, SDL_Renderer* renderer, SDL_Color color);
 
 //Timer functions
 typedef struct

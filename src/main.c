@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#define LEVEL_WIDTH 3000
+#define LEVEL_HEIGTH 4000
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
@@ -15,7 +17,7 @@ int main(int argc, char* argv[])
 
     CollisionObjectList* environmentCollision = collision_object_list_init();
 
-    BoundingBox* screenBox = bounding_box_init_screen(WINDOW_WIDTH, WINDOW_HEIGHT, environmentCollision);
+    BoundingBox* screenBox = bounding_box_init_screen(LEVEL_WIDTH, LEVEL_HEIGTH, environmentCollision);
     collision_object_add(environmentCollision, screenBox, COLLISION_BOUNDING_BOX);
     //test environment collision
     CollisionRect* box1 = collision_rect_init(300, 600, 200, 50, NULL, environmentCollision);
@@ -26,7 +28,7 @@ int main(int argc, char* argv[])
     Box stickBro = box_init_platformer_movement(500, 500, 75, 125, 0.15f, 400, 450);
     collision_object_add(environmentCollision, &stickBro, COLLISION_BOX);
 
-    WeatherMachine* wm = weather_machine_init(100000, 4, 2, 8, screenBox, environmentCollision);
+    WeatherMachine* wm = weather_machine_init(100000, 5, 2, 5, screenBox, environmentCollision);
     //RainMachine* rm = rainmachine_init(100000);
     //if (!rm) return 1;
     //LightningMachine* lm = lightning_machine_init(18, 2, 8);
@@ -68,11 +70,12 @@ int main(int argc, char* argv[])
 
         box_move_platformer(&stickBro, environmentCollision, deltaTime, CONTACT_STOP);
         circle_move_free(&dot, environmentCollision, deltaTime, CONTACT_BOUNCE_OFF);
-
-        weather_machine_render(wm, window.renderer, deltaTime);
-        draw_collision_environment(environmentCollision, window.renderer);
-        box_filled_draw(&stickBro, window.renderer, COLOR[LIGHT_GRAY]);
-        circle_filled_draw(&dot, window.renderer, COLOR[TEAL]);
+        camera_update(&window, &dot, OBJ_CIRCLE, LEVEL_WIDTH, LEVEL_HEIGTH);
+        weather_machine_render(wm, window.renderer, &window.camera, deltaTime);
+        draw_collision_environment(environmentCollision, &window.camera, window.renderer);
+        box_filled_draw_camera(&stickBro, &window.camera, window.renderer, COLOR[LIGHT_GRAY]);
+        //box_filled_draw(&stickBro, window.renderer, COLOR[LIGHT_GRAY]);
+        circle_filled_draw(&dot, &window.camera, window.renderer,  COLOR[TEAL]);
 
         SDL_RenderPresent(window.renderer);
     }

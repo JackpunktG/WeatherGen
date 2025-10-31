@@ -52,7 +52,7 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
 
     float bbx1 = rainBox->x;
     float bbx2 = rainBox->width + bbx1;
-    for (int i = 0; i < toMake && rm->count < rm->maxCount; i++)
+    for (uint32_t i = 0; i < toMake && rm->count < rm->maxCount; i++)
     {
         Droplet* d = arena_alloc(rm->arena, sizeof(Droplet));
         if (!d)
@@ -83,7 +83,7 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
             d->color.a = 230 + (rand() % 26);
             d->vY = rand_float(125.0f, 130.0f);
         }
-        else if (count > 1000 && i % 4 == 0 || (count > 1200 && i % 3 == 0) || count > 1400 && i % 2 == 0 || count > 2000) //med rain
+        else if ((count > 1000 && i % 4 == 0) || (count > 1200 && i % 3 == 0) || (count > 1400 && i % 2 == 0) || count > 2000) //med rain
         {
             d->size = 1 + (rand() % 5);
             d->color.r = 156 + (rand() % 10);
@@ -189,7 +189,7 @@ void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int win
         arena_reset(rm->arena);
 }
 
-void rain_render(RainMachine* rm, SDL_Renderer* renderer)
+void rain_render(RainMachine* rm, SDL_FRect* camera, SDL_Renderer* renderer)
 {
     if (!rm || !renderer) return;
 
@@ -199,18 +199,18 @@ void rain_render(RainMachine* rm, SDL_Renderer* renderer)
         Droplet* d = rm->drops[i];
         if (!d->dropDeath)
         {
-            SDL_FRect rect = {d->x, d->y, d->size, d->size * 3};
+            SDL_FRect rect = {d->x - camera->x, d->y - camera->y, d->size, d->size * 3};
             draw_filled_rect(renderer, NULL, &rect, d->color);
         }
         else if (d->dropDeath && d->vY > 0)
         {
             for (int j = 0; j < d->size; j++)
-                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)), d->y - (d->size + (rand() % d->size)), d->color);
+                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)) - camera->x, d->y - (d->size + (rand() % d->size)) - camera->y, d->color);
         }
     }
 }
 
-void lightning_rain_render(RainMachine* rm, SDL_Renderer* renderer)
+void lightning_rain_render(RainMachine* rm, SDL_FRect* camera, SDL_Renderer* renderer)
 {
     if (!rm || !renderer) return;
 
@@ -224,18 +224,18 @@ void lightning_rain_render(RainMachine* rm, SDL_Renderer* renderer)
         SDL_Color brighterPallet = {r, g, b, d->color.a};
         if (!d->dropDeath)
         {
-            SDL_FRect rect = {d->x, d->y, d->size, d->size * 3};
+            SDL_FRect rect = {d->x - camera->x, d->y - camera->y, d->size, d->size * 3};
             draw_filled_rect(renderer, NULL, &rect, brighterPallet);
         }
         else if (d->dropDeath && d->vY > 0)
         {
             for (int j = 0; j < d->size; j++)
-                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)), d->y - (d->size + (rand() % d->size)), brighterPallet);
+                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)) - camera->x, d->y - (d->size + (rand() % d->size)) - camera->y, brighterPallet);
         }
     }
 }
 
-void lightning_fade_rain_render(RainMachine* rm, uint8_t fadeLevel, SDL_Renderer* renderer)
+void lightning_fade_rain_render(RainMachine* rm, uint8_t fadeLevel, SDL_FRect* camera, SDL_Renderer* renderer)
 {
     if (!rm || !renderer) return;
 
@@ -249,13 +249,13 @@ void lightning_fade_rain_render(RainMachine* rm, uint8_t fadeLevel, SDL_Renderer
         SDL_Color brighterPallet = {r, g, b, d->color.a};
         if (!d->dropDeath)
         {
-            SDL_FRect rect = {d->x, d->y, d->size, d->size * 3};
+            SDL_FRect rect = {d->x - camera->x, d->y - camera->y, d->size, d->size * 3};
             draw_filled_rect(renderer, NULL, &rect, brighterPallet);
         }
         else if (d->dropDeath && d->vY > 0)
         {
             for (int j = 0; j < d->size; j++)
-                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)), d->y - (d->size + (rand() % d->size)), brighterPallet);
+                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)) - camera->x, d->y - (d->size + (rand() % d->size)) - camera->y, brighterPallet);
         }
     }
 }
@@ -587,7 +587,7 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
     }
 }
 
-void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_Renderer* renderer)
+void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_FRect* camera, SDL_Renderer* renderer)
 {
     if (lm->strandCount == 0 || !lm || !renderer) return;
 
@@ -617,17 +617,17 @@ void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_Renderer* rende
 
             if (ls->intensity > 5)
             {
-                draw_line_float(renderer, ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y, ls->lightningPoints[k]->x, ls->lightningPoints[k]->y, COLOR[PURPLE]);
-                draw_line_float(renderer, ls->lightningPoints[k-1]->x -1, ls->lightningPoints[k-1]->y - 1, ls->lightningPoints[k]->x -1, ls->lightningPoints[k]->y -1, COLOR[PURPLE]);
-                draw_line_float(renderer, ls->lightningPoints[k-1]->x +1, ls->lightningPoints[k-1]->y + 1, ls->lightningPoints[k]->x +1, ls->lightningPoints[k]->y + 1, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k-1]->x - camera->x, ls->lightningPoints[k-1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k-1]->x - 1 - camera->x, ls->lightningPoints[k-1]->y - 1 - camera->y, ls->lightningPoints[k]->x - 1 - camera->x, ls->lightningPoints[k]->y - 1 - camera->y, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k-1]->x +1 - camera->x, ls->lightningPoints[k-1]->y + 1 - camera->y, ls->lightningPoints[k]->x +1 - camera->x, ls->lightningPoints[k]->y + 1 - camera->y, COLOR[PURPLE]);
             }
             else if (ls->intensity > 2)
             {
-                draw_line_float(renderer, ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y, ls->lightningPoints[k]->x, ls->lightningPoints[k]->y, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k-1]->x - camera->x, ls->lightningPoints[k-1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
 
-                draw_line_float(renderer, ls->lightningPoints[k-1]->x -1, ls->lightningPoints[k-1]->y - 1, ls->lightningPoints[k]->x -1, ls->lightningPoints[k]->y -1, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k-1]->x - 1 - camera->x, ls->lightningPoints[k-1]->y - 1 - camera->y, ls->lightningPoints[k]->x -1 - camera->x, ls->lightningPoints[k]->y -1 - camera->y, COLOR[PURPLE]);
             }
-            else draw_line_float(renderer, ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y, ls->lightningPoints[k]->x, ls->lightningPoints[k]->y, COLOR[PURPLE]);
+            else draw_line_float(renderer, ls->lightningPoints[k-1]->x - camera->x, ls->lightningPoints[k-1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
             //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
             //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
         }
@@ -669,33 +669,32 @@ WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t lightningMaxSt
     return wm;
 }
 
-void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, float deltaTime)
+void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRect* camera, float deltaTime)
 {
     if (!wm || !renderer) return;
 
     if (wm->lightningMachine->strandCount > 0)
     {
-        lightning_rain_render(wm->rainMachine, renderer);
-        lightning_render(wm->lightningMachine, wm->weatherBox, renderer);
+        lightning_rain_render(wm->rainMachine, camera, renderer);
+        lightning_render(wm->lightningMachine, wm->weatherBox, camera, renderer);
         wm->lightningAfterBoost = true;
     }
     else if (wm->lightningAfterBoost)
     {
         wm->lightningAfterBoostTimer -= deltaTime;
         if (wm->fadeLevel < 55) wm->fadeLevel = (1 + (rand() % 2) > 1) ? wm->fadeLevel + 3 : wm->fadeLevel + 2;
-        printf("HERE fade lvl %d\n", wm->fadeLevel);
-        lightning_fade_rain_render(wm->rainMachine, wm->fadeLevel, renderer);
+        //printf("HERE fade lvl %d\n", wm->fadeLevel);
+        lightning_fade_rain_render(wm->rainMachine, wm->fadeLevel, camera, renderer);
 
         if (wm->lightningAfterBoostTimer <= 0)
         {
-            printf("RESET\n");
             wm->lightningAfterBoost = false;
             wm->lightningAfterBoostTimer = 0.4f;
             wm->fadeLevel = 0;
         }
     }
     else
-        rain_render(wm->rainMachine, renderer);
+        rain_render(wm->rainMachine, camera, renderer);
 }
 
 void weather_machine_destroy(WeatherMachine* wm)
