@@ -1,8 +1,18 @@
 #include "rain.h"
-#include <stdlib.h>
-#include <time.h>
+
 #include <limits.h>
 #include <math.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
+
+static float rand_float(float min, float max)
+{
+    return min + ((float)rand() / (float)RAND_MAX * (max - min));
+}
+
+
+/* Rain Machine */
 
 RainMachine* rainmachine_init(size_t maxCount)
 {
@@ -32,22 +42,17 @@ RainMachine* rainmachine_init(size_t maxCount)
     rm->maxCount = maxCount;
     rm->count = 0;
 
-    srand((unsigned)time(NULL));
 
     return rm;
 }
 
-static float rand_float(float min, float max)
-{
-    return min + ((float)rand() / (float)RAND_MAX * (max -min));
-}
-
 void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float deltaTime)
 {
-    if (!rm || !rainBox || count <= 0) return;
-    //top corners of BB get an even-ish spread
+    if (!rm || !rainBox || count <= 0)
+        return;
+    // top corners of BB get an even-ish spread
 
-    uint32_t toMake = count * deltaTime; //create count per second
+    uint32_t toMake = count * deltaTime;  // create count per second
     // best to make the count go up in increments of 30 starting at 0
 
     float bbx1 = rainBox->x;
@@ -63,7 +68,8 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
 
         d->x = rand_float(bbx1, bbx2);
         d->y = rand_float(rainBox->y, rainBox->y + 1.75f);
-        if (bbx1 >= bbx2 - 1) bbx1 = rainBox->x;
+        if (bbx1 >= bbx2 - 1)
+            bbx1 = rainBox->x;
 
         if ((count > 2000 && i % 4 == 0) || (count > 2200 && i % 3 == 0))
         {
@@ -74,7 +80,7 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
             d->color.a = 240 + (rand() % 16);
             d->vY = rand_float(125.0f, 135.0f);
         }
-        else if ((count > 1600 && i % 6 == 0) || (count > 1850 && i % 4 == 0) || (count > 2200 && i % 2 == 0) || count > 2500)  //heavy rain
+        else if ((count > 1600 && i % 6 == 0) || (count > 1850 && i % 4 == 0) || (count > 2200 && i % 2 == 0) || count > 2500)    // heavy rain
         {
             d->size = 2 + (rand() % 4);
             d->color.r = 125 + (rand() % 10);
@@ -83,7 +89,7 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
             d->color.a = 230 + (rand() % 26);
             d->vY = rand_float(125.0f, 130.0f);
         }
-        else if ((count > 1000 && i % 4 == 0) || (count > 1200 && i % 3 == 0) || (count > 1400 && i % 2 == 0) || count > 2000) //med rain
+        else if ((count > 1000 && i % 4 == 0) || (count > 1200 && i % 3 == 0) || (count > 1400 && i % 2 == 0) || count > 2000)    // med rain
         {
             d->size = 1 + (rand() % 5);
             d->color.r = 156 + (rand() % 10);
@@ -101,7 +107,7 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
             d->color.a = 170 + (rand() % 46);
             d->vY = rand_float(120.0f, 125.0f);
         }
-        else  //drizzling
+        else    // drizzling
         {
             d->size = 1 + (rand() % 3);
             d->color.r = 150 + (rand() % 35);
@@ -113,7 +119,6 @@ void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float del
         d->dropDeath = false;
 
         rm->drops[rm->count++] = d;
-
     }
 }
 
@@ -123,43 +128,44 @@ void droplet_death(Droplet* d)
     d->dropDeath = true;
 }
 
-//don't include rainBox in CollisionObjectList
+// don't include rainBox in CollisionObjectList
 void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int wind, CollisionObjectList* colList)
 {
-    if (!rm) return;
+    if (!rm)
+        return;
 
     size_t i = 0;
-    while(i < rm->count)
+    while (i < rm->count)
     {
         Droplet* d = rm->drops[i];
 
-        if(!d->dropDeath)
+        if (!d->dropDeath)
         {
             if (d->size >= 4)
                 d->y += (d->vY * deltaTime * 4);
             else if (d->size >= 2)
-                d->y += (d->vY * deltaTime* 2);
+                d->y += (d->vY * deltaTime * 2);
             else
                 d->y += (d->vY * deltaTime);
 
             d->y += (-3 + rand() % 7);
 
             short sendBack = SHRT_MIN;
-            SDL_Rect rect = {d->x, d->y, d->size, d->size *3};
-            //checking collision
+            SDL_Rect rect = {d->x, d->y, d->size, d->size * 3};
+            // checking collision
             if ((d->y > rainBox->height - rainBox->y) || box_detect_collision(&rect, colList, &sendBack, COLLISION_RETURN_FLOOR))
             {
-                d->y = (sendBack == SHRT_MIN) ? rainBox->height -rainBox->y : sendBack;
+                d->y = (sendBack == SHRT_MIN) ? rainBox->height - rainBox->y : sendBack;
 
                 droplet_death(d);
 
                 i++;
-                continue; // goes back to the start to process the drop next drop
+                continue;  // goes back to the start to process the drop next drop
             }
-            //slight x random movement
+            // slight x random movement
             d->x += (-2 + rand() % 5);
 
-            //Wind and screen wrap for when wind is active
+            // Wind and screen wrap for when wind is active
             if (wind != 0)
             {
                 d->x += (wind * deltaTime);
@@ -175,7 +181,7 @@ void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int win
         {
             d->vY -= (deltaTime * 5);
 
-            //if water particle time is up the spot is swapped with newest drop
+            // if water particle time is up the spot is swapped with newest drop
             if (d->vY < 0)
             {
                 rm->drops[i] = rm->drops[--rm->count];
@@ -191,8 +197,8 @@ void rain_update(RainMachine* rm, BoundingBox* rainBox, float deltaTime, int win
 
 void rain_render(RainMachine* rm, SDL_FRect* camera, SDL_Renderer* renderer)
 {
-    if (!rm || !renderer) return;
-
+    if (!rm || !renderer)
+        return;
 
     for (size_t i = 0; i < rm->count; i++)
     {
@@ -205,15 +211,15 @@ void rain_render(RainMachine* rm, SDL_FRect* camera, SDL_Renderer* renderer)
         else if (d->dropDeath && d->vY > 0)
         {
             for (int j = 0; j < d->size; j++)
-                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)) - camera->x, d->y - (d->size + (rand() % d->size)) - camera->y, d->color);
+                draw_point(renderer, d->x + (d->size * 3) + 1 + (rand() % (j + 1)) - camera->x, d->y - (d->size + (rand() % d->size)) - camera->y, d->color);
         }
     }
 }
 
 void lightning_rain_render(RainMachine* rm, SDL_FRect* camera, SDL_Renderer* renderer)
 {
-    if (!rm || !renderer) return;
-
+    if (!rm || !renderer)
+        return;
 
     for (size_t i = 0; i < rm->count; i++)
     {
@@ -230,15 +236,15 @@ void lightning_rain_render(RainMachine* rm, SDL_FRect* camera, SDL_Renderer* ren
         else if (d->dropDeath && d->vY > 0)
         {
             for (int j = 0; j < d->size; j++)
-                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)) - camera->x, d->y - (d->size + (rand() % d->size)) - camera->y, brighterPallet);
+                draw_point(renderer, d->x + (d->size * 3) + 1 + (rand() % (j + 1)) - camera->x, d->y - (d->size + (rand() % d->size)) - camera->y, brighterPallet);
         }
     }
 }
 
 void lightning_fade_rain_render(RainMachine* rm, uint8_t fadeLevel, SDL_FRect* camera, SDL_Renderer* renderer)
 {
-    if (!rm || !renderer) return;
-
+    if (!rm || !renderer)
+        return;
 
     for (size_t i = 0; i < rm->count; i++)
     {
@@ -255,37 +261,41 @@ void lightning_fade_rain_render(RainMachine* rm, uint8_t fadeLevel, SDL_FRect* c
         else if (d->dropDeath && d->vY > 0)
         {
             for (int j = 0; j < d->size; j++)
-                draw_point(renderer, d->x + (d->size * 3) +  1 + (rand() % (j +1)) - camera->x, d->y - (d->size + (rand() % d->size)) - camera->y, brighterPallet);
+                draw_point(renderer, d->x + (d->size * 3) + 1 + (rand() % (j + 1)) - camera->x, d->y - (d->size + (rand() % d->size)) - camera->y, brighterPallet);
         }
     }
 }
 
 void rainmachine_destroy(RainMachine* rm)
 {
-    if (!rm) return;
+    if (!rm)
+        return;
 
-    //need to just free the pointers we created
+    // need to just free the pointers we created
     free(rm->drops);
 
-    //arena destory handels the acutally Droplet
+    // arena destory handels the acutally Droplet
     arena_destroy(rm->arena);
 
     free(rm);
 }
 
+/* Lightning Machine */
+
 LightningMachine* lightning_machine_init(uint8_t maxStrands, uint32_t frequence, uint8_t serverity)
 {
-    if (maxStrands == 0 || frequence == 0) return NULL;
+    if (maxStrands == 0 || frequence == 0)
+        return NULL;
 
     LightningMachine* lm = malloc(sizeof(LightningMachine));
-    if(!lm)
+    if (!lm)
     {
         printf("ERROR - failed to create lighning machine\n");
         return NULL;
     }
 
     lm->arena = arena_init(ARENA_BLOCK_SIZE, 8);
-    if(!lm->arena)
+    if (!lm->arena)
     {
         free(lm);
         return NULL;
@@ -293,7 +303,7 @@ LightningMachine* lightning_machine_init(uint8_t maxStrands, uint32_t frequence,
 
     lm->strands = arena_alloc(lm->arena, maxStrands * sizeof(LightningStrand*));
     {
-        if(!lm->strands)
+        if (!lm->strands)
         {
             arena_destroy(lm->arena);
 
@@ -311,28 +321,26 @@ LightningMachine* lightning_machine_init(uint8_t maxStrands, uint32_t frequence,
 
     lm->intervalTime = 0.016;
     lm->intervalCooldownTimer = 0.016;
-    srand((unsigned)time(NULL));
 
     return lm;
 }
 
 void lightning_machine_destroy(LightningMachine* lm)
 {
-    if (!lm) return;
+    if (!lm)
+        return;
 
     arena_destroy(lm->arena);
 
     free(lm);
-
 }
-
 
 LightningStrand* spawn_lightning(LightningMachine* lm, float x, float y, uint8_t intensity)
 {
     LightningStrand* ls = arena_alloc(lm->arena, sizeof(LightningStrand));
 
     ls->intensity = intensity;
-    ls->maxCount = intensity *3 + (rand() % 20); //slightly random amount of lighting point -- higher intesity more
+    ls->maxCount = intensity * 3 + (rand() % 20);  // slightly random amount of lighting point -- higher intesity more
 
     ls->lightningPoints = arena_alloc(lm->arena, ls->maxCount * sizeof(Lightning*));
     if (!ls->lightningPoints)
@@ -350,18 +358,20 @@ LightningStrand* spawn_lightning(LightningMachine* lm, float x, float y, uint8_t
 
 void lightning_machine_reset(LightningMachine* lm)
 {
+    if (!lm)
+        return;
+
     arena_destroy(lm->arena);
     lm->strands = NULL;
     lm->arena = NULL;
 
     lm->arena = arena_init(ARENA_BLOCK_SIZE, 8);
-    if(!lm->arena)
+    if (!lm->arena)
         printf("ERROR couldn't reinit arena");
-
 
     lm->strands = arena_alloc(lm->arena, lm->strandMaxCount * sizeof(LightningStrand*));
     {
-        if(!lm->strands)
+        if (!lm->strands)
         {
             arena_destroy(lm->arena);
 
@@ -375,14 +385,14 @@ void lightning_machine_reset(LightningMachine* lm)
     lm->intervalTime = 0.016;
     lm->intervalCooldownTimer = 0.016;
     lm->coolDownTimer = lm->frequence;
-
 }
 
 void lightning_machine_update(LightningMachine* lm, BoundingBox* weatherBox, float deltaTime)
 {
-    if (!lm || !weatherBox) return;
+    if (!lm || !weatherBox)
+        return;
 
-    if (!lm->ready && lm->coolDownTimer > 0)     //counting down till next strike is possibile and only if the collDownTimer has been reset
+    if (!lm->ready && lm->coolDownTimer > 0)  // counting down till next strike is possibile and only if the collDownTimer has been reset
     {
         lm->coolDownTimer -= deltaTime;
         if (lm->coolDownTimer < 0)
@@ -393,22 +403,23 @@ void lightning_machine_update(LightningMachine* lm, BoundingBox* weatherBox, flo
 
     if (lm->ready)
     {
-        uint8_t roll = 1 + (rand() % 30); //dice roll between 1 - 30;
+        uint8_t roll = 1 + (rand() % 30);  // dice roll between 1 - 30;
         if (lm->serverity > roll)
         {
-            short x = weatherBox->x + (weatherBox->width / 4) + (rand() % (weatherBox->width / 2));  // getting a random starting point at the top of the weatherBox in the middle 3 / 4 of the box
-            lm->strands[lm->strandCount++] = spawn_lightning(lm, x, weatherBox->y, lm->serverity > 5 ? lm->serverity : 6); //making this one always a main branch
+            short x = weatherBox->x + (weatherBox->width / 4) + (rand() % (weatherBox->width / 2));                         // getting a random starting point at the top of the weatherBox in the middle 3 / 4 of the box
+            lm->strands[lm->strandCount++] = spawn_lightning(lm, x, weatherBox->y, lm->serverity > 5 ? lm->serverity : 6);  // making this one always a main branch
             lm->ready = false;
         }
         return;
     }
 
-    //check if all the lightning has finished and reset if
+    // check if all the lightning has finished and reset if
     for (int i = 0; i < lm->strandCount; ++i)
     {
         if (lm->strands[i]->count <= lm->strands[i]->maxCount)
             return;
     }
+    //printf("RESETTING LIGHTNING MACHINE\n");
     lightning_machine_reset(lm);
 }
 
@@ -417,20 +428,34 @@ void build_out_small_strand(Lightning* l1, Lightning* l2, Lightning* l)
     float dx, dy, len;
     dx = l1->y - l2->y;
     dy = l2->x - l1->y;
-    len = sqrtf(dx*dx + dy*dy);
+    len = sqrtf(dx * dx + dy * dy);
+
+    // Prevent division by zero
+    if (len < 0.01f)
+    {
+        l->x = l2->x + (5 + rand() % 8);
+        l->y = l2->y + (5 + rand() % 8);
+        return;
+    }
 
     float ux = dx / len;
     float uy = dy / len;
 
     l->x = l2->x + ux * (5 + rand() % 8);
-    l->y = l2->y + uy * (5 +rand() % 8);
-
+    l->y = l2->y + uy * (5 + rand() % 8);
 }
 
 void start_small_strand(LightningStrand* ls, Lightning* l)
 {
+    // Safety check: need at least 3 points
+    if (ls->count < 3)
+    {
+        l->x = ls->x;
+        l->y = ls->y;
+        return;
+    }
 
-    if (ls->lightningPoints[2]->x - ls->lightningPoints[1]->x < 5)      //if the points are in line on the x-axis pick a direction
+    if (ls->lightningPoints[2]->x - ls->lightningPoints[1]->x < 5)  // if the points are in line on the x-axis pick a direction
     {
         int flip = rand() % 2;
         if (flip == 1)
@@ -445,7 +470,7 @@ void start_small_strand(LightningStrand* ls, Lightning* l)
         }
 
     }
-    else if (ls->lightningPoints[2]->y - ls->lightningPoints[0]->y < 5)   //if the points are in line on the y-axis pick a direction
+    else if (ls->lightningPoints[2]->y - ls->lightningPoints[0]->y < 5)    // if the points are in line on the y-axis pick a direction
     {
         int flip = rand() % 2;
         if (flip == 1)
@@ -459,7 +484,7 @@ void start_small_strand(LightningStrand* ls, Lightning* l)
             l->y = ls->lightningPoints[0]->y - 5;
         }
     }
-    else                                                        //else take the points are work out the next point
+    else    // else take the points are work out the next point
     {
         int flip = rand() % 2;
         if (flip == 1)
@@ -477,20 +502,21 @@ void start_small_strand(LightningStrand* ls, Lightning* l)
 
 void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float deltaTime)
 {
-    if (lm->strandCount == 0 || !lm || !weatherBox) return;
+    if (lm->strandCount == 0 || !lm || !weatherBox)
+        return;
 
     lm->intervalCooldownTimer -= deltaTime;
     if (lm->intervalCooldownTimer < 0)
         lm->intervalCooldownTimer = lm->intervalTime;
     else
-        return;  //return if interval timer has not been meet
+        return;  // return if interval timer has not been meet
 
     for (int i = 0; i < lm->strandCount; ++i)
     {
-        LightningStrand* ls = lm->strands[i];
-
-        if (ls->count > ls->maxCount)
+        if (lm->strands[i]->count > lm->strands[i]->maxCount)
             continue;
+
+        LightningStrand* ls = lm->strands[i];
 
         Lightning* l = arena_alloc(lm->arena, sizeof(Lightning));
         if (!l)
@@ -498,78 +524,85 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
             printf("ERROR - alloc lighting\n");
             return;
         }
+        //Init point
+        l->x = 0;
+        l->y = 0;
+
 
         if (ls->intensity > 5)
         {
-            if (ls->count == ls->maxCount)      //last one hitting the ground for main Strands
+            if (ls->count == ls->maxCount)  // last one hitting the ground for main Strands
             {
-                l->x = ls->lightningPoints[ls->count -1]->x;
+                l->x = ls->lightningPoints[ls->count - 1]->x;
                 l->y = weatherBox->y + weatherBox->height;
             }
-            else if (ls->count == 0)        // first one taking the start of the strand
+            else if (ls->count == 0)    // first one taking the start of the strand
             {
                 l->x = ls->x;
                 l->y = ls->y;
             }
-            else                    // all the others growning out but tending down
+            else if (ls->count > 0 && ls->count < ls->maxCount)    // all the others growning out but tending down
             {
                 int diceRoll = 10 + rand() % 10;
                 if (diceRoll > 25)
-                    l->x = rand_float(ls->lightningPoints[ls->count -1]->x - 200, ls->lightningPoints[ls->count -1]->x + 200);
+                    l->x = rand_float(ls->lightningPoints[ls->count - 1]->x - 200, ls->lightningPoints[ls->count - 1]->x + 200);
                 else
-                    l->x = rand_float(ls->lightningPoints[ls->count -1]->x - 10, ls->lightningPoints[ls->count -1]->x + 10);
-                l->y = rand_float(ls->lightningPoints[ls->count -1]->y, ls->lightningPoints[ls->count -1]->y + ((float)weatherBox->height / ls->maxCount) * 2);
+                    l->x = rand_float(ls->lightningPoints[ls->count - 1]->x - 10, ls->lightningPoints[ls->count - 1]->x + 10);
+                l->y = rand_float(ls->lightningPoints[ls->count - 1]->y, ls->lightningPoints[ls->count - 1]->y + ((float)weatherBox->height / ls->maxCount) * 2);
             }
         }
         else if (ls->intensity > 2)
         {
-            if (ls->count == 0)        // first one taking the start of the strand
+            if (ls->count == 0)  // first one taking the start of the strand
             {
                 l->x = ls->x;
                 l->y = ls->y;
             }
-            else                    // all the others growning out but tending down
+            else if (ls->count > 0)    // all the others growning out but tending down
             {
                 int diceRoll = 5 + rand() % 10;
                 if (diceRoll > 12)
-                    l->x = rand_float(ls->lightningPoints[ls->count -1]->x - 100, ls->lightningPoints[ls->count -1]->x + 100);
+                    l->x = rand_float(ls->lightningPoints[ls->count - 1]->x - 100, ls->lightningPoints[ls->count - 1]->x + 100);
                 else
-                    l->x = rand_float(ls->lightningPoints[ls->count -1]->x - 10, ls->lightningPoints[ls->count -1]->x + 10);
-                l->y = rand_float(ls->lightningPoints[ls->count -1]->y, ls->lightningPoints[ls->count -1]->y + (float)weatherBox->height / ls->maxCount / 4);
+                    l->x = rand_float(ls->lightningPoints[ls->count - 1]->x - 10, ls->lightningPoints[ls->count - 1]->x + 10);
+                l->y = rand_float(ls->lightningPoints[ls->count - 1]->y, ls->lightningPoints[ls->count - 1]->y + (float)weatherBox->height / ls->maxCount / 4);
             }
         }
-        else
+        else    // Small strands (intensity <= 2)
         {
-            if (ls->count == 0)        // first one taking the start of the strand
+            if (ls->count == 0)  // first one taking the start of the strand
             {
                 l->x = ls->x;
                 l->y = ls->y;
             }
-            else if(ls->count == 1)     //to get the point before and saving
+            else if (ls->count == 1 && i > 0 && lm->strands[i - 1]->count >= 2)    // to get the point before and saving
             {
-                l->x = lm->strands[i-1]->lightningPoints[lm->strands[i-1]->count - 2]->x;
-                l->y = lm->strands[i-1]->lightningPoints[lm->strands[i-1]->count - 2]->y;
-
+                l->x = lm->strands[i - 1]->lightningPoints[lm->strands[i - 1]->count - 2]->x;
+                l->y = lm->strands[i - 1]->lightningPoints[lm->strands[i - 1]->count - 2]->y;
             }
-            else if(ls->count == 2) //to get the point after and build perpendicular
+            else if (ls->count == 2 && i > 0 && lm->strands[i - 1]->count >= 1)    // to get the point after and build perpendicular
             {
-                l->x = lm->strands[i-1]->lightningPoints[lm->strands[i-1]->count - 1]->x;
-                l->x = lm->strands[i-1]->lightningPoints[lm->strands[i-1]->count - 1]->y;
-
+                l->x = lm->strands[i - 1]->lightningPoints[lm->strands[i - 1]->count - 1]->x;
+                l->y = lm->strands[i - 1]->lightningPoints[lm->strands[i - 1]->count - 1]->y;
             }
-            else if(ls->count == 3)
+            else if (ls->count == 3 && ls->count >= 3)
+            {
                 start_small_strand(ls, l);
-            else if (ls->count == 4)
+            }
+            else if (ls->count == 4 && ls->count >= 4)
+            {
                 build_out_small_strand(ls->lightningPoints[0], ls->lightningPoints[3], l);
-            else
-                build_out_small_strand(ls->lightningPoints[ls->count -2], ls->lightningPoints[ls->count -1], l);
-
+            }
+            else if (ls->count > 4)
+            {
+                build_out_small_strand(ls->lightningPoints[ls->count - 2], ls->lightningPoints[ls->count - 1], l);
+            }
         }
         ls->lightningPoints[ls->count++] = l;
-
+        //printf("X %f | Y %f\n", l->x, l->y);
     }
 
-    if (lm->strandCount >= lm->strandMaxCount)
+    if (lm->strandCount > lm->strandMaxCount)
         return;
     for (int i = 0; i < lm->strandCount; ++i)
     {
@@ -578,63 +611,385 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
         if (ls->count < 10 || ls->intensity < 3 || (ls->intensity > 4 && ls->y > weatherBox->height))
             continue;
 
-        //roll dice to create another strand
+        // roll dice to create another strand
         short diceRoll = (ls->intensity * 2) + (rand() % 100);
         if (diceRoll > 50 && lm->strandCount < lm->strandMaxCount)
-            lm->strands[lm->strandCount++] = spawn_lightning(lm, ls->lightningPoints[ls->count -1]->x, ls->lightningPoints[ls->count -1]->y, ls->intensity > 6 ? (4 + rand() % 3) : (ls->intensity - 1) + rand() % 1);
-        //lm->strands[lm->strandCount++] = spawn_lightning(lm, 20, 20, ls->intensity > 6 ? (4 + rand() % 3) : (ls->intensity - 1) + rand() % 1);
-
+            lm->strands[lm->strandCount++] = spawn_lightning(lm, ls->lightningPoints[ls->count - 1]->x, ls->lightningPoints[ls->count - 1]->y, ls->intensity > 6 ? (4 + rand() % 3) : (ls->intensity - 1) + rand() % 1);
+        // lm->strands[lm->strandCount++] = spawn_lightning(lm, 20, 20, ls->intensity > 6 ? (4 + rand() % 3) : (ls->intensity - 1) + rand() % 1);
     }
 }
 
 void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_FRect* camera, SDL_Renderer* renderer)
 {
-    if (lm->strandCount == 0 || !lm || !renderer) return;
+    if (lm->strandCount < 1 || !lm || !renderer)
+        return;
 
-    //printf("--------- LOOP ----------------\n");
+    // printf("--------- LOOP ----------------\n");
 
     for (int i = 0; i < lm->strandCount; ++i)
     {
-        LightningStrand *ls = lm->strands[i];
+        LightningStrand* ls = lm->strands[i];
+
         for (int k = 1; k < ls->count; ++k)
         {
-            if (ls->intensity < 3 && k < 4) continue; //skipping the set up points
+            if (ls->intensity < 3 && k < 4)
+                continue;  // skipping the set up points
 
-            /*  JANKY FIX FOR POINTS BEING FREE OR OVERWRITTEN EARLY --- REQUIRES DEBUGGING*/
-            if (ls->lightningPoints[k-1]->x < wB->x ||  ls->lightningPoints[k-1]->y <  wB->x || ls->lightningPoints[k]->x <  wB->x ||  ls->lightningPoints[k]->y <  wB->x )
+            /*  JANKY FIX FOR POINTS BEING FREE OR OVERWRITTEN EARLY --- REQUIRES DEBUGGING  */
+            if (ls->lightningPoints[k - 1]->x < wB->x || ls->lightningPoints[k - 1]->y < wB->x || ls->lightningPoints[k]->x < wB->x || ls->lightningPoints[k]->y < wB->x)
             {
-                //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
-                //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
+                //printf("strandCount %d k = %d\n", i, k);
+                //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
+                //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
                 continue;
             }
-            if (ls->lightningPoints[k-1]->x > (wB->width + wB->x) ||  ls->lightningPoints[k-1]->y > (wB->width + wB->x) || ls->lightningPoints[k]->x >  (wB->width + wB->x) ||  ls->lightningPoints[k]->y >  (wB->width + wB->x) )
+            else if (ls->lightningPoints[k - 1]->x > (wB->width + wB->x) || ls->lightningPoints[k - 1]->y > (wB->width + wB->x) || ls->lightningPoints[k]->x > (wB->width + wB->x) || ls->lightningPoints[k]->y > (wB->width + wB->x))
             {
-                //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
-                //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
+                //printf("strandCount %d k = %d\n", i, k);
+                //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
+                //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
                 continue;
             }
-
+            else if (ls->lightningPoints[k - 1]->x < 0 || ls->lightningPoints[k - 1]->y < 0 || ls->lightningPoints[k]->x < 0 || ls->lightningPoints[k]->y < 0)
+            {
+                //printf("strandCount %d k = %d\n", i, k);
+                //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
+                //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
+                continue;
+            }
 
             if (ls->intensity > 5)
             {
-                draw_line_float(renderer, ls->lightningPoints[k-1]->x - camera->x, ls->lightningPoints[k-1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
-                draw_line_float(renderer, ls->lightningPoints[k-1]->x - 1 - camera->x, ls->lightningPoints[k-1]->y - 1 - camera->y, ls->lightningPoints[k]->x - 1 - camera->x, ls->lightningPoints[k]->y - 1 - camera->y, COLOR[PURPLE]);
-                draw_line_float(renderer, ls->lightningPoints[k-1]->x +1 - camera->x, ls->lightningPoints[k-1]->y + 1 - camera->y, ls->lightningPoints[k]->x +1 - camera->x, ls->lightningPoints[k]->y + 1 - camera->y, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k - 1]->x - camera->x, ls->lightningPoints[k - 1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k - 1]->x - 1 - camera->x, ls->lightningPoints[k - 1]->y - 1 - camera->y, ls->lightningPoints[k]->x - 1 - camera->x, ls->lightningPoints[k]->y - 1 - camera->y, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k - 1]->x + 1 - camera->x, ls->lightningPoints[k - 1]->y + 1 - camera->y, ls->lightningPoints[k]->x + 1 - camera->x, ls->lightningPoints[k]->y + 1 - camera->y, COLOR[PURPLE]);
             }
             else if (ls->intensity > 2)
             {
-                draw_line_float(renderer, ls->lightningPoints[k-1]->x - camera->x, ls->lightningPoints[k-1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k - 1]->x - camera->x, ls->lightningPoints[k - 1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
 
-                draw_line_float(renderer, ls->lightningPoints[k-1]->x - 1 - camera->x, ls->lightningPoints[k-1]->y - 1 - camera->y, ls->lightningPoints[k]->x -1 - camera->x, ls->lightningPoints[k]->y -1 - camera->y, COLOR[PURPLE]);
+                draw_line_float(renderer, ls->lightningPoints[k - 1]->x - 1 - camera->x, ls->lightningPoints[k - 1]->y - 1 - camera->y, ls->lightningPoints[k]->x - 1 - camera->x, ls->lightningPoints[k]->y - 1 - camera->y, COLOR[PURPLE]);
             }
-            else draw_line_float(renderer, ls->lightningPoints[k-1]->x - camera->x, ls->lightningPoints[k-1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
-            //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
-            //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
+            else
+                draw_line_float(renderer, ls->lightningPoints[k - 1]->x - camera->x, ls->lightningPoints[k - 1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
+            // printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
+            // printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
         }
-
     }
 }
 
+/* Snow machine functions */
+SnowMachine* snowmachine_init(size_t maxCount)
+{
+    SnowMachine* sm = malloc(sizeof(SnowMachine));
+    if (!sm)
+    {
+        printf("ERROR - creating RainMachine\n");
+        return NULL;
+    }
+
+    sm->arena = arena_init(ARENA_BLOCK_SIZE, 8);
+    if (!sm->arena)
+    {
+        free(sm);
+        return NULL;
+    }
+
+    sm->snow = arena_alloc(sm->arena, maxCount * sizeof(SnowPartical*));
+    if (!sm->snow)
+    {
+        arena_destroy(sm->arena);
+        free(sm->arena);
+        free(sm);
+        return NULL;
+    }
+
+    sm->maxCount = maxCount;
+    sm->snowLanded = maxCount / 2;
+    sm->count = 0;
+    sm->snowLanded = 0;
+
+
+    return sm;
+}
+
+void snow_spwan(SnowMachine* sm, BoundingBox* weatherBox, uint32_t count, float deltaTime)
+{
+    if (!sm || !weatherBox || count <= 0)
+        return;
+
+    uint32_t toMake = count * deltaTime;  // create count per second
+    // best to make the count go up in increments of 30 starting at 0
+
+    float bbx1 = weatherBox->x;
+    float bbx2 = weatherBox->width + bbx1;
+    for (uint32_t i = 0; i < toMake && sm->count < sm->maxCount; ++i)
+    {
+        SnowPartical* s = arena_alloc(sm->arena, sizeof(SnowPartical));
+        if (!s)
+        {
+            printf("ERROR - droplet arena_alloc failed\n");
+            return;
+        }
+
+        s->x = rand_float(bbx1, bbx2);
+        s->y = rand_float(weatherBox->y, weatherBox->y + 1.75f);
+        if (bbx1 >= bbx2 - 1)
+            bbx1 = weatherBox->x;
+
+        if ((count > 2000 && i % 4 == 0) || (count > 2200 && i % 3 == 0))
+        {
+            s->size = 3 + (rand() % 3);
+            s->color.r = 225 + (rand() % 16);
+            s->color.g = 235 + (rand() % 16);
+            s->color.b = 250 + (rand() % 6);
+            s->color.a = 225 + (rand() % 31);
+            s->vY = rand_float(70.0f, 85.0f);
+        }
+        else if ((count > 1600 && i % 6 == 0) || (count > 1850 && i % 4 == 0) || (count > 2200 && i % 2 == 0) || count > 2500)    // heavy rain
+        {
+            s->size = 2 + (rand() % 4);
+            s->color.r = 250 + (rand() % 6);
+            s->color.g = 244 + (rand() % 8);
+            s->color.b = 235 + (rand() % 8);
+            s->color.a = 220 + (rand() % 36);
+            s->vY = rand_float(60.0f, 85.0f);
+        }
+        else if ((count > 1000 && i % 4 == 0) || (count > 1200 && i % 3 == 0) || (count > 1400 && i % 2 == 0) || count > 2000)    // mes rain
+        {
+            s->size = 1 + (rand() % 5);
+            s->color.r = 225 + (rand() % 16);
+            s->color.g = 235 + (rand() % 16);
+            s->color.b = 250 + (rand() % 6);
+            s->color.a = 200 + (rand() % 36);
+            s->vY = rand_float(60, 75);
+        }
+        else if ((count > 500 && i % 3 == 0) || (count > 800 && i % 2 == 0) || count > 1200)
+        {
+            s->size = 1 + (rand() % 4);
+            s->color.r = 250 + (rand() % 6);
+            s->color.g = 246 + (rand() % 3);
+            s->color.b = 240 + (rand() % 10);
+            s->color.a = 180 + (rand() % 20);
+            s->vY = rand_float(60, 70);
+        }
+        else    // srizzling
+        {
+            s->size = 1 + (rand() % 3);
+            s->color.r = 245 + (rand() % 5);
+            s->color.g = 250 + (rand() % 3);
+            s->color.b = 253+ (rand() % 3);
+            s->color.a = 160 + (rand() % 20);
+            s->vY = rand_float(60, 65);
+        }
+        s->landed = false;
+        s->snowDeath = false;
+
+        sm->snow[sm->count++] = s;
+    }
+}
+
+bool landed_snow_collision(SnowMachine* sm, SnowPartical* s)
+{
+    for (int i = 0; i < sm->count; ++i)
+    {
+        if (sm->snow[i]->landed)
+            if ((int)sm->snow[i]->x == (int)s->x && (int)sm->snow[i]->y == (int)s->y)
+                return true;
+    }
+    return false;
+}
+
+bool laying_snow_collision(SnowPartical* s, CollisionObjectList* colList, float *veloctiy)
+{
+    for (int i = 0; i < colList->totalObjects; i++)
+    {
+        if (colList->type[i] == COLLISION_BOUNDING_BOX)
+            continue;
+        else if (colList->type[i] == COLLISION_ENVIRONMENT_RECT)
+        {
+            //CollisionRect* cR = (CollisionRect *)colList->obj[i];
+            continue;
+
+        }
+        else if (colList->type[i] == COLLISION_ENVIRONMENT_CIRCLE)
+        {
+            //CollisionCircle* cC = (CollisionCircle *)colList->obj[i];
+            continue;
+        }
+        else if (colList->type[i] == COLLISION_CIRCLE)
+        {
+            //Circle *c = (Circle *)colList->obj[i];
+            continue;
+        }
+        else if (colList->type[i] == COLLISION_BOX)
+        {
+            Box *b = (Box *)colList->obj[i];
+            if (s->x > b->x && s->x < b->x + b->rect.w && s->y > b->rect.y && s->y < b->rect.h + b->y)
+            {
+                /*if (b->x + ((float)b->rect.w / 2) > s->x)
+                    *veloctiy = rand_float(20, 30) - 40;
+                else
+                    *veloctiy = rand_float(20, 30);
+                */
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
+// don't include weatherBox in CollisionObjectList
+void snow_update(SnowMachine* sm, BoundingBox* weatherBox, float deltaTime, int wind, CollisionObjectList* colList)
+{
+    if (!sm)
+        return;
+
+    size_t i = 0;
+    while (i < sm->count)
+    {
+        SnowPartical* s = sm->snow[i];
+
+        if (!s->landed)
+        {
+            if (s->size >= 4)
+                s->y += (s->vY * deltaTime * 2.5);
+            else if (s->size >= 2)
+                s->y += (s->vY * deltaTime * 1.5);
+            else
+                s->y += (s->vY * deltaTime);
+
+            s->y += (-3 + rand() % 7);
+
+            short sendBack = SHRT_MIN;
+            SDL_Rect rect = {s->x, s->y, s->size, s->size * 3};
+            // checking collision
+            if ((s->y > weatherBox->height - weatherBox->y) || box_detect_collision(&rect, colList, &sendBack, COLLISION_RETURN_FLOOR))
+            {
+                s->y = (sendBack == SHRT_MIN) ? weatherBox->height - weatherBox->y : sendBack;
+                //printf("s->x %f, s->y: %f\n",s->x, s->y);
+                s->landed = true;
+                if (s->x > weatherBox->x+weatherBox->width || s->x < weatherBox->x || sm->snowLanded > sm->maxLanded)
+                {
+                    s->snowDeath = true;
+                    s->vY = 0;
+                }
+                else
+                {
+                    s->y -= ((rand() % 10) + 1);
+                    //++sm->snowLanded;
+                }
+
+                ++i;
+                continue;  // goes back to the start to process the next particle
+            }
+            /* NEEDS WORK UNOPTIMIZED AF */
+            /*else if (landed_snow_collision(sm, s))
+            {
+                s->landed = true;
+                ++i;
+                continue;
+            }*/
+
+            // slight x random movement
+            s->x += (-2 + rand() % 5);
+
+            // Wind and screen wrap for when wind is active
+            if (wind != 0)
+            {
+                s->x += (wind * deltaTime);
+
+                if (wind < 0 && s->x < weatherBox->x)
+                    s->x = weatherBox->width + weatherBox->x - (weatherBox->x - s->x);
+                else if (wind > 0 && s->x > weatherBox->width + weatherBox->x)
+                    s->x = weatherBox->x + (s->x - weatherBox->width + weatherBox->x);
+            }
+
+        }
+        else if (!s->snowDeath)     //checking for collision on laying snow
+        {
+            float v = 0;
+            if (laying_snow_collision(s, colList, &v))
+            {
+                //s->vY = v;
+                s->snowDeath = true;
+                /*if (v > 0)
+                {
+                    s->x = 1 + (rand() % 5);
+                    s->y += v * deltaTime * 4;
+                }
+                else
+                {
+                    s->x = (rand() % 5) - 5;
+                    s->y += v * deltaTime * 4;
+                }*/
+            }
+
+        }
+        else if (s->vY == 0)
+        {
+            sm->snow[i] = sm->snow[--sm->count];
+            continue;
+        }
+        else
+        {
+            if (s->vY > 0)
+            {
+                s->x = 1 + (rand() % 5);
+                s->y += s->vY * deltaTime * 4;
+            }
+            else
+            {
+                s->x = (rand() % 5) - 5;
+                s->y += s->vY * deltaTime * 4;
+            }
+            s->vY *= (deltaTime);
+            printf("%f\n", s->vY);
+            if (s->vY < 0.05 && s->vY > -0.05)
+                s->vY = 0;
+        }
+        i++;
+    }
+
+    //if (sm->count == 0)
+    //    arena_reset(sm->arena);
+}
+
+void snow_render(SnowMachine* sm, SDL_FRect* camera, SDL_Renderer* renderer)
+{
+    if (!sm || !renderer)
+        return;
+
+    for (size_t i = 0; i < sm->count; i++)
+    {
+        SnowPartical* s = sm->snow[i];
+        if (!s->snowDeath)
+        {
+            SDL_FRect rect = {s->x - camera->x, s->y - camera->y, s->size, s->size * 3};
+            draw_filled_rect(renderer, NULL, &rect, s->color);
+        }
+        else if (s->landed && s->vY != 0)
+        {
+            for (int j = 0; j < s->size; j++)
+                draw_point(renderer, s->x + (s->size * 3) + 1 + (rand() % (j + 1)) - camera->x, s->y - (s->size + (rand() % s->size)) - camera->y, s->color);
+
+        }
+    }
+}
+
+void snowmachine_destroy(SnowMachine* sm)
+{
+    if (!sm)
+        return;
+
+
+    arena_destroy(sm->arena);
+
+    free(sm);
+}
+
+/* WETHER MACHINE CONTROL UNIT */
 WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t lightningMaxStrands, uint32_t lightningFrequence, uint8_t lightningServerity, BoundingBox* weatherBox, CollisionObjectList* environmentCollision)
 {
     WeatherMachine* wm = malloc(sizeof(WeatherMachine));
@@ -666,24 +1021,31 @@ WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t lightningMaxSt
     wm->lightningAfterBoostTimer = 0.4f;
 
 
+
+    srand((unsigned)time(NULL)); //start rand Seed
+
     return wm;
 }
 
 void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRect* camera, float deltaTime)
 {
-    if (!wm || !renderer) return;
+    if (!wm || !renderer)
+        return;
 
     if (wm->lightningMachine->strandCount > 0)
     {
+        // Render the lightning
         lightning_rain_render(wm->rainMachine, camera, renderer);
         lightning_render(wm->lightningMachine, wm->weatherBox, camera, renderer);
         wm->lightningAfterBoost = true;
+
     }
     else if (wm->lightningAfterBoost)
     {
         wm->lightningAfterBoostTimer -= deltaTime;
-        if (wm->fadeLevel < 55) wm->fadeLevel = (1 + (rand() % 2) > 1) ? wm->fadeLevel + 3 : wm->fadeLevel + 2;
-        //printf("HERE fade lvl %d\n", wm->fadeLevel);
+        if (wm->fadeLevel < 55)
+            wm->fadeLevel = (1 + (rand() % 2) > 1) ? wm->fadeLevel + 3 : wm->fadeLevel + 2;
+        // printf("HERE fade lvl %d\n", wm->fadeLevel);
         lightning_fade_rain_render(wm->rainMachine, wm->fadeLevel, camera, renderer);
 
         if (wm->lightningAfterBoostTimer <= 0)
@@ -699,7 +1061,8 @@ void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRec
 
 void weather_machine_destroy(WeatherMachine* wm)
 {
-    if (!wm) return;
+    if (!wm)
+        return;
 
     rainmachine_destroy(wm->rainMachine);
     lightning_machine_destroy(wm->lightningMachine);

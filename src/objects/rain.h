@@ -86,6 +86,46 @@ void lightning_render(LightningMachine* lm, BoundingBox* weatherBox, SDL_FRect* 
 void lightning_machine_destroy(LightningMachine* lm);
 
 
+/* Snow Machine */
+typedef struct
+{
+    float x, y;
+    float vY;
+    uint8_t size;
+    SDL_Color color;
+    bool landed;
+    bool snowDeath;
+} SnowPartical;
+
+typedef struct
+{
+    Arena* arena;
+    SnowPartical** snow;
+    uint32_t snowLanded;
+    uint32_t maxLanded;
+    size_t count;
+    size_t maxCount;
+} SnowMachine;
+
+//init SnowMachine
+SnowMachine* snowmachine_init(size_t maxCount);
+
+//Spawns new rain
+void snow_spwan(SnowMachine* rm, BoundingBox* rainBox, uint32_t count, float deltaTime);
+
+//updated rain possition
+//-value for wind goes left | + right  Value equated to pper second movenemt (Basicly xMaxVel)
+void snow_update(SnowMachine* rm, BoundingBox* rainBox, float deltaTime, int wind, CollisionObjectList* collObjects);
+//render
+void snow_render(SnowMachine* rm, SDL_FRect* camera, SDL_Renderer* renderer);
+
+//destory
+void snowmachine_destroy(SnowMachine* rm);
+
+
+
+
+/* Weather Machine */
 
 typedef struct
 {
