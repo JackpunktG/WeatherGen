@@ -705,7 +705,7 @@ SnowMachine* snowmachine_init(size_t maxCount)
     }
 
     sm->maxCount = maxCount;
-    sm->snowLanded = maxCount / 2;
+    sm->maxLanded = maxCount / 4;
     sm->count = 0;
     sm->snowLanded = 0;
 
@@ -827,11 +827,11 @@ bool laying_snow_collision(SnowPartical* s, CollisionObjectList* colList, float 
             Box *b = (Box *)colList->obj[i];
             if (s->x > b->x && s->x < b->x + b->rect.w && s->y > b->rect.y && s->y < b->rect.h + b->y)
             {
-                /*if (b->x + ((float)b->rect.w / 2) > s->x)
-                    *veloctiy = rand_float(20, 30) - 40;
+                if (b->x + ((float)b->rect.w / 2) > s->x)
+                    *veloctiy = rand_float(20, 30) - 50;
                 else
-                    *veloctiy = rand_float(20, 30);
-                */
+                    *veloctiy = rand_float(20, 30) + 20;
+
                 return true;
             }
         }
@@ -867,18 +867,17 @@ void snow_update(SnowMachine* sm, BoundingBox* weatherBox, float deltaTime, int 
             // checking collision
             if ((s->y > weatherBox->height - weatherBox->y) || box_detect_collision(&rect, colList, &sendBack, COLLISION_RETURN_FLOOR))
             {
-                s->y = (sendBack == SHRT_MIN) ? weatherBox->height - weatherBox->y : sendBack;
-                //printf("s->x %f, s->y: %f\n",s->x, s->y);
                 s->landed = true;
-                if (s->x > weatherBox->x+weatherBox->width || s->x < weatherBox->x || sm->snowLanded > sm->maxLanded)
+                if (s->y < weatherBox->y || s->y > weatherBox->y + weatherBox->height || s->x > weatherBox->x+weatherBox->width || s->x < weatherBox->x || sm->snowLanded > sm->maxLanded)
                 {
                     s->snowDeath = true;
                     s->vY = 0;
                 }
                 else
                 {
-                    s->y -= ((rand() % 10) + 1);
-                    //++sm->snowLanded;
+                    s->y = (sendBack == SHRT_MIN) ? weatherBox->height - weatherBox->y : sendBack;
+                    s->y -= ((rand() % 25) + 1);
+                    ++sm->snowLanded;
                 }
 
                 ++i;
@@ -912,20 +911,28 @@ void snow_update(SnowMachine* sm, BoundingBox* weatherBox, float deltaTime, int 
             float v = 0;
             if (laying_snow_collision(s, colList, &v))
             {
-                //s->vY = v;
+                s->vY = v;
                 s->snowDeath = true;
-                /*if (v > 0)
+                --sm->snowLanded;
+                if (v > 0)
                 {
-                    s->x = 1 + (rand() % 5);
-                    s->y += v * deltaTime * 4;
+                    s->x += 1 + (rand() % 5);
                 }
                 else
                 {
-                    s->x = (rand() % 5) - 5;
-                    s->y += v * deltaTime * 4;
-                }*/
+                    s->x += (rand() % 5) - 30;
+                }
             }
-
+            else
+            {
+                SDL_Rect rect = {s->x, s->y, s->size, s->size * 3};
+                if (!box_detect_collision(&rect, colList, NULL, COLLISION_RETURN_FLOOR))
+                {
+                    --sm->snowLanded;
+                    s->landed = false;
+                    s->vY = rand_float(35, 55);
+                }
+            }
         }
         else if (s->vY == 0)
         {
@@ -936,16 +943,15 @@ void snow_update(SnowMachine* sm, BoundingBox* weatherBox, float deltaTime, int 
         {
             if (s->vY > 0)
             {
-                s->x = 1 + (rand() % 5);
-                s->y += s->vY * deltaTime * 4;
+                s->x += 1 + (rand() % 5);
+                s->y += s->vY * deltaTime * 2;
             }
             else
             {
-                s->x = (rand() % 5) - 5;
-                s->y += s->vY * deltaTime * 4;
+                s->x += (rand() % 5) - 5;
+                s->y += s->vY * deltaTime * 2;
             }
-            s->vY *= (deltaTime);
-            printf("%f\n", s->vY);
+            s->vY *= (deltaTime * 35);
             if (s->vY < 0.05 && s->vY > -0.05)
                 s->vY = 0;
         }

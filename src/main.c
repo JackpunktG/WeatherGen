@@ -23,9 +23,9 @@ int main(int argc, char* argv[])
     CollisionRect* box1 = collision_rect_init(300, 600, 200, 50, NULL, environmentCollision);
     CollisionCircle* circle1 = collision_circle_init(800, 500, 35, NULL, environmentCollision);
 
-    Circle dot = circle_init(100, 100, 5, 500, 500);
-    collision_object_add(environmentCollision, &dot, COLLISION_CIRCLE);
-    Box stickBro = box_init_platformer_movement(500, 500, 75, 125, 0.15f, 400, 450);
+    //Circle dot = circle_init(100, 100, 5, 500, 500);
+    //collision_object_add(environmentCollision, &dot, COLLISION_CIRCLE);
+    Box stickBro = box_init_platformer_movement(500, 500, 200, 50, 0.15f, 400, 450);
     collision_object_add(environmentCollision, &stickBro, COLLISION_BOX);
 
     SnowMachine* sm = snowmachine_init(100000);
@@ -82,19 +82,19 @@ int main(int argc, char* argv[])
         //lightning_strand_grow(wm->lightningMachine, screenBox, deltaTime);
 
         snow_spwan(sm, screenBox, x, deltaTime);
-        snow_update(sm, screenBox, deltaTime, 20, environmentCollision);
+        snow_update(sm, screenBox, deltaTime, 0, environmentCollision);
 
 
 
         box_move_platformer(&stickBro, environmentCollision, deltaTime, CONTACT_STOP);
-        circle_move_free(&dot, environmentCollision, deltaTime, CONTACT_BOUNCE_OFF);
+        //circle_move_free(&dot, environmentCollision, deltaTime, CONTACT_BOUNCE_OFF);
         camera_update(&window, &stickBro, OBJ_BOX, LEVEL_WIDTH, LEVEL_HEIGTH);
         //weather_machine_render(wm, window.renderer, &window.camera, deltaTime);
-        snow_render(sm, &window.camera, window.renderer);
         draw_collision_environment(environmentCollision, &window.camera, window.renderer);
         box_filled_draw_camera(&stickBro, &window.camera, window.renderer, COLOR[LIGHT_GRAY]);
+        snow_render(sm, &window.camera, window.renderer);
         //box_filled_draw(&stickBro, window.renderer, COLOR[LIGHT_GRAY]);
-        circle_filled_draw(&dot, &window.camera, window.renderer,  COLOR[TEAL]);
+        //circle_filled_draw(&dot, &window.camera, window.renderer,  COLOR[TEAL]);
 
         SDL_RenderPresent(window.renderer);
     }
