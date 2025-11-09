@@ -198,7 +198,7 @@ bool window_size_update(WindowConstSize* windowStruct, SDL_Event* e)
         return true;
 
     }
-    else if (e->key.keysym.sym == SDLK_p)
+    else if (e->key.keysym.sym == SDLK_1)
     {
         if (windowStruct->width == 1980)
         {
@@ -1614,6 +1614,9 @@ void box_filled_draw_camera(Box* box, SDL_FRect* camera, SDL_Renderer* renderer,
 
     draw_filled_rect(renderer, NULL, &screen, color);
 }
+//*************************************************************
+
+
 
 //Timer functions
 //*************************************************************

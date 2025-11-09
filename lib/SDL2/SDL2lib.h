@@ -1,5 +1,6 @@
 #ifndef SDL2LIB_H
 #define SDL2LIB_H
+#include "../arena_memory/arena_memory.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
@@ -81,8 +82,7 @@ void free_texture(Texture* texture);
 // Load texture from file (functions also init_texutre first)
 bool load_texture_from_file(Texture* texture, const char* path, SDL_Renderer* renderer);
 bool load_texture_from_file_colourKey(Texture* texture, const char* text, SDL_Renderer* renderer, SDL_Color colour);
-
-//load texture from text requires TTF
+//load texture from text requires TTF  (functions also init_texutre first)
 bool load_texture_from_rendered_text(Texture* texture, const char* text, TTF_Font* font, SDL_Color textColor, SDL_Renderer* renderer);
 
 //render texture
@@ -278,6 +278,8 @@ void box_move_platformer(Box* box, CollisionObjectList* colList, float deltaTime
 void box_outlined_draw(Box* box, SDL_Renderer* renderer, SDL_Color color);
 void box_filled_draw(Box* box, SDL_Renderer* renderer, SDL_Color color);
 void box_filled_draw_camera(Box* box, SDL_FRect* camera, SDL_Renderer* renderer, SDL_Color color);
+
+
 
 //Timer functions
 typedef struct

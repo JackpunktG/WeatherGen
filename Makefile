@@ -8,6 +8,7 @@ INCLUDES = -Ilib/arena_memory -Ilib/SDL2 -Isrc/objects
 # Source files
 SRCS = src/main.c \
        src/objects/rain.c \
+       src/objects/floatingtext.c \
        lib/arena_memory/arena_memory.c \
        lib/SDL2/SDL2lib.c
 
