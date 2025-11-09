@@ -1,4 +1,5 @@
 #include "rain.h"
+#include <assert.h>
 
 #include <limits.h>
 #include <math.h>
@@ -41,17 +42,18 @@ RainMachine* rainmachine_init(size_t maxCount)
 
     rm->maxCount = maxCount;
     rm->count = 0;
+    rm->spwanRate = 0;
 
 
     return rm;
 }
 
-void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float deltaTime)
+void rain_spwan(RainMachine* rm, BoundingBox* rainBox, float deltaTime)
 {
-    if (!rm || !rainBox || count <= 0)
+    if (!rm || !rainBox || rm->spwanRate <= 0)
         return;
     // top corners of BB get an even-ish spread
-
+    uint32_t count = rm->spwanRate;
     uint32_t toMake = count * deltaTime;  // create count per second
     // best to make the count go up in increments of 30 starting at 0
 
@@ -284,9 +286,6 @@ void rainmachine_destroy(RainMachine* rm)
 
 LightningMachine* lightning_machine_init(uint8_t maxStrands, uint32_t frequence, uint8_t serverity)
 {
-    if (maxStrands == 0 || frequence == 0)
-        return NULL;
-
     LightningMachine* lm = malloc(sizeof(LightningMachine));
     if (!lm)
     {
@@ -311,13 +310,13 @@ LightningMachine* lightning_machine_init(uint8_t maxStrands, uint32_t frequence,
             return NULL;
         }
     }
-
     lm->strandMaxCount = maxStrands;
     lm->strandCount = 0;
     lm->frequence = frequence;
     lm->coolDownTimer = frequence;
     lm->ready = false;
     lm->serverity = serverity;
+    lm->active = false;
 
     lm->intervalTime = 0.016;
     lm->intervalCooldownTimer = 0.016;
@@ -342,11 +341,19 @@ LightningStrand* spawn_lightning(LightningMachine* lm, float x, float y, uint8_t
     ls->intensity = intensity;
     ls->maxCount = intensity * 3 + (rand() % 20);  // slightly random amount of lighting point -- higher intesity more
 
-    ls->lightningPoints = arena_alloc(lm->arena, ls->maxCount * sizeof(Lightning*));
+    ls->lightningPoints = arena_alloc(lm->arena, (ls->maxCount +1) * sizeof(Lightning*)); //plus 1 because we are include the maxCount number point
     if (!ls->lightningPoints)
     {
         printf("ERROR - arena_alloc for lightningPoints\n");
         return NULL;
+    }
+
+
+    for(int i = 0; i <= ls->maxCount; ++i)
+    {
+        ls->lightningPoints[i] = arena_alloc(lm->arena, sizeof(Lightning));
+        ls->lightningPoints[i]->x = 0;
+        ls->lightningPoints[i]->y = 0;
     }
 
     ls->x = x;
@@ -389,7 +396,7 @@ void lightning_machine_reset(LightningMachine* lm)
 
 void lightning_machine_update(LightningMachine* lm, BoundingBox* weatherBox, float deltaTime)
 {
-    if (!lm || !weatherBox)
+    if (!lm->active || !lm || !weatherBox)
         return;
 
     if (!lm->ready && lm->coolDownTimer > 0)  // counting down till next strike is possibile and only if the collDownTimer has been reset
@@ -518,16 +525,7 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
 
         LightningStrand* ls = lm->strands[i];
 
-        Lightning* l = arena_alloc(lm->arena, sizeof(Lightning));
-        if (!l)
-        {
-            printf("ERROR - alloc lighting\n");
-            return;
-        }
-        //Init point
-        l->x = 0;
-        l->y = 0;
-
+        Lightning* l = ls->lightningPoints[ls->count]; //assigning the point to be set
 
         if (ls->intensity > 5)
         {
@@ -541,7 +539,7 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
                 l->x = ls->x;
                 l->y = ls->y;
             }
-            else if (ls->count > 0 && ls->count < ls->maxCount)    // all the others growning out but tending down
+            else    // all the others growning out but tending down
             {
                 int diceRoll = 10 + rand() % 10;
                 if (diceRoll > 25)
@@ -598,7 +596,8 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
                 build_out_small_strand(ls->lightningPoints[ls->count - 2], ls->lightningPoints[ls->count - 1], l);
             }
         }
-        ls->lightningPoints[ls->count++] = l;
+        //ls->lightningPoints[ls->count++] = l; //reassigning the point and incrementing
+        ++ls->count;  //incrementing count
         //printf("X %f | Y %f\n", l->x, l->y);
     }
 
@@ -626,35 +625,36 @@ void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_FRect* camera, 
 
     // printf("--------- LOOP ----------------\n");
 
-    for (int i = 0; i < lm->strandCount; ++i)
+    for (int i = 0; i < lm->strandCount && i < lm->strandMaxCount; ++i)
     {
         LightningStrand* ls = lm->strands[i];
 
+        if(ls->count < 2) continue;
+
         for (int k = 1; k < ls->count; ++k)
         {
-            if (ls->intensity < 3 && k < 4)
-                continue;  // skipping the set up points
 
-            /*  JANKY FIX FOR POINTS BEING FREE OR OVERWRITTEN EARLY --- REQUIRES DEBUGGING  */
-            if (ls->lightningPoints[k - 1]->x < wB->x || ls->lightningPoints[k - 1]->y < wB->x || ls->lightningPoints[k]->x < wB->x || ls->lightningPoints[k]->y < wB->x)
+            /*  JANKY FIX FOR POINTS BEING FREE OR OVERWRITTEN EARLY RESULTING IN GARAGBE POINT TRYING TO BE DRAWN --- REQUIRES DEBUGGING  */
+            if (ls->lightningPoints[k - 1]->x < wB->x || ls->lightningPoints[k]->x < wB->x)
             {
-                //printf("strandCount %d k = %d\n", i, k);
-                //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
-                //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
+
+                printf("1strandCount %d k = %d\n", i, k);
+                printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
+                printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
                 continue;
             }
-            else if (ls->lightningPoints[k - 1]->x > (wB->width + wB->x) || ls->lightningPoints[k - 1]->y > (wB->width + wB->x) || ls->lightningPoints[k]->x > (wB->width + wB->x) || ls->lightningPoints[k]->y > (wB->width + wB->x))
+            else if (ls->lightningPoints[k - 1]->x > (wB->width + wB->x)|| ls->lightningPoints[k]->x > (wB->width + wB->x))
             {
-                //printf("strandCount %d k = %d\n", i, k);
-                //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
-                //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
+                printf("2strandCount %d k = %d\n", i, k);
+                printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
+                printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
                 continue;
             }
             else if (ls->lightningPoints[k - 1]->x < 0 || ls->lightningPoints[k - 1]->y < 0 || ls->lightningPoints[k]->x < 0 || ls->lightningPoints[k]->y < 0)
             {
-                //printf("strandCount %d k = %d\n", i, k);
-                //printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
-                //printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
+                printf("3strandCount %d k = %d\n", i, k);
+                printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
+                printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
                 continue;
             }
 
@@ -672,6 +672,7 @@ void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_FRect* camera, 
             }
             else
                 draw_line_float(renderer, ls->lightningPoints[k - 1]->x - camera->x, ls->lightningPoints[k - 1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
+
             // printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
             // printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
         }
@@ -708,16 +709,46 @@ SnowMachine* snowmachine_init(size_t maxCount)
     sm->maxLanded = maxCount / 4;
     sm->count = 0;
     sm->snowLanded = 0;
+    sm->spwanRate = 0;
 
 
     return sm;
 }
 
-void snow_spwan(SnowMachine* sm, BoundingBox* weatherBox, uint32_t count, float deltaTime)
+void snowmachine_reset(SnowMachine* sm)
 {
-    if (!sm || !weatherBox || count <= 0)
+    if (!sm)
         return;
 
+    arena_destroy(sm->arena);
+    sm->snow = NULL;
+    sm->arena = NULL;
+
+    sm->arena = arena_init(ARENA_BLOCK_SIZE, 8);
+    if (!sm->arena)
+        printf("ERROR couldn't reinit arena");
+
+    sm->snow = arena_alloc(sm->arena, sm->maxCount * sizeof(SnowPartical*));
+    {
+        if (!sm->snow)
+        {
+            arena_destroy(sm->arena);
+
+            printf("ERROR couldn't reinit snow pointers");
+        }
+    }
+
+    sm->count = 0;
+    sm->snowLanded = 0;
+}
+
+
+void snow_spwan(SnowMachine* sm, BoundingBox* weatherBox, float deltaTime)
+{
+    if (!sm || !weatherBox || sm->spwanRate <= 0)
+        return;
+
+    uint32_t count = sm->spwanRate;
     uint32_t toMake = count * deltaTime;  // create count per second
     // best to make the count go up in increments of 30 starting at 0
 
@@ -920,7 +951,7 @@ void snow_update(SnowMachine* sm, BoundingBox* weatherBox, float deltaTime, int 
                 }
                 else
                 {
-                    s->x += (rand() % 5) - 30;
+                    s->x += (rand() % 8) - 30;
                 }
             }
             else
@@ -958,9 +989,10 @@ void snow_update(SnowMachine* sm, BoundingBox* weatherBox, float deltaTime, int 
         i++;
     }
 
-    //if (sm->count == 0)
-    //    arena_reset(sm->arena);
+    if (sm->count == 0)
+        snowmachine_reset(sm);
 }
+
 
 void snow_render(SnowMachine* sm, SDL_FRect* camera, SDL_Renderer* renderer)
 {
@@ -989,14 +1021,13 @@ void snowmachine_destroy(SnowMachine* sm)
     if (!sm)
         return;
 
-
     arena_destroy(sm->arena);
 
     free(sm);
 }
 
 /* WETHER MACHINE CONTROL UNIT */
-WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t lightningMaxStrands, uint32_t lightningFrequence, uint8_t lightningServerity, BoundingBox* weatherBox, CollisionObjectList* environmentCollision)
+WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t maxStrands, uint32_t lightningFrequence, uint8_t lightningServerity, uint32_t maxSnow, BoundingBox* weatherBox, CollisionObjectList* environmentCollision)
 {
     WeatherMachine* wm = malloc(sizeof(WeatherMachine));
     if (!wm)
@@ -1012,25 +1043,172 @@ WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t lightningMaxSt
         return NULL;
     }
 
-    wm->lightningMachine = lightning_machine_init(lightningMaxStrands, lightningFrequence, lightningServerity);
+    wm->lightningMachine = lightning_machine_init(maxStrands, lightningFrequence, lightningServerity);
     if (!wm->lightningMachine)
     {
         rainmachine_destroy(wm->rainMachine);
         free(wm);
         return NULL;
     }
+
+    wm->snowMachine = snowmachine_init(maxSnow);
+    if (!wm->snowMachine)
+    {
+        lightning_machine_destroy(wm->lightningMachine);
+        rainmachine_destroy(wm->rainMachine);
+        free(wm);
+        return NULL;
+    }
+
+
+
+
     wm->weatherBox = weatherBox;
     wm->environmentCollision = environmentCollision;
 
     wm->lightningAfterBoost = false;
     wm->fadeLevel = 0;
     wm->lightningAfterBoostTimer = 0.4f;
-
+    wm->wind = 0;
 
 
     srand((unsigned)time(NULL)); //start rand Seed
 
     return wm;
+}
+
+void weather_machine_controls(WeatherMachine* wm, FloatingTextController* c, WindowConstSize* window, SDL_Event* e)
+{
+    if(e->type != SDL_KEYDOWN || !wm)
+        return;
+
+    switch(e->key.keysym.sym)
+    {
+    case SDLK_l:
+        if (!wm->lightningMachine->active)
+        {
+            wm->lightningMachine->active = true;
+            floating_text_add(c, window, "LIGHTNING ACTIVATED", COLOR[BLACK]);
+        }
+        else
+        {
+            lightning_machine_reset(wm->lightningMachine);
+            wm->lightningMachine->ready = false;
+            floating_text_add(c, window, "LIGHTNING DEACTIVATED", COLOR[BLACK]);
+        }
+        break;
+    case SDLK_k:
+    {
+        wm->lightningMachine->serverity += 1;
+        if (wm->lightningMachine->serverity > 10)
+            wm->lightningMachine->serverity = 1;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "LIGHTNING SERVERITY SET TO %d", wm->lightningMachine->serverity);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_j:
+    {
+        uint8_t tmpCount = wm->lightningMachine->strandMaxCount;
+        tmpCount = tmpCount > 200 ? 1 : tmpCount + 1;
+        uint32_t tmpFreq = wm->lightningMachine->frequence;
+        uint8_t tmpServ = wm->lightningMachine->serverity;
+        lightning_machine_destroy(wm->lightningMachine);
+        wm->lightningMachine = NULL;
+        wm->lightningMachine = lightning_machine_init(tmpCount, tmpFreq, tmpServ);
+        wm->lightningMachine->active = true;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "LIGHTNING STRAND COUNT SET TO %d", tmpCount);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_h:
+    {
+        wm->lightningMachine->frequence += 1;
+        if (wm->lightningMachine->frequence > 100)
+            wm->lightningMachine->frequence = 1;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "LIGHTNING FREQUENCE SET TO %d", wm->lightningMachine->frequence);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_p:
+        wm->rainMachine->spwanRate = 0;
+        floating_text_add(c, window, "RAIN STOPPED", COLOR[BLACK]);
+        break;
+    case SDLK_o:
+    {
+        wm->rainMachine->spwanRate += 30;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "RAIN INCREASED TO %d DROPLETS PER SECOND", wm->rainMachine->spwanRate);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_i:
+    {
+        wm->rainMachine->spwanRate -= 30;
+        if (wm->rainMachine->spwanRate > UINT32_MAX - 31)
+            wm->rainMachine->spwanRate = 0;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "RAIN DECREASED TO %d DROPLETS PER SECOND", wm->rainMachine->spwanRate);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_u:
+    {
+        wm->rainMachine->spwanRate = wm->rainMachine->spwanRate == 0 ? UINT32_MAX : 0;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "RAIN PULSE MODE ");
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_m:
+        wm->snowMachine->spwanRate = 0;
+        floating_text_add(c, window, "SNOW STOPPED", COLOR[BLACK]);
+        break;
+    case SDLK_n:
+    {
+        wm->snowMachine->spwanRate += 30;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "SNOW INCREASED TO %d PARTICLES PER SECOND", wm->snowMachine->spwanRate);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_b:
+    {
+        wm->snowMachine->spwanRate -= 30;
+        if (wm->snowMachine->spwanRate > UINT32_MAX - 31)
+            wm->snowMachine->spwanRate = 0;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "SNOW DECREASED TO %d PARTICLES PER SECOND", wm->snowMachine->spwanRate);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_v:
+        wm->snowMachine->spwanRate = wm->snowMachine->spwanRate == 0 ? UINT32_MAX : 0;
+        floating_text_add(c, window, "SNOW PULSE MODE ", COLOR[BLACK]);
+        break;
+    case SDLK_9:
+    {
+        wm->wind -= 20;
+        if (wm->wind < -1000)
+            wm->wind = 0;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "WIND SET TO %d", wm->wind);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_0:
+    {
+        wm->wind += 20;
+        if (wm->wind > 1000)
+            wm->wind = 0;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "WIND SET TO %d", wm->wind);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    }
 }
 
 void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRect* camera, float deltaTime)
@@ -1044,6 +1222,8 @@ void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRec
         lightning_rain_render(wm->rainMachine, camera, renderer);
         lightning_render(wm->lightningMachine, wm->weatherBox, camera, renderer);
         wm->lightningAfterBoost = true;
+
+        snow_render(wm->snowMachine, camera, renderer);
 
     }
     else if (wm->lightningAfterBoost)
@@ -1060,9 +1240,15 @@ void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRec
             wm->lightningAfterBoostTimer = 0.4f;
             wm->fadeLevel = 0;
         }
+
+        snow_render(wm->snowMachine, camera, renderer);
     }
     else
+    {
         rain_render(wm->rainMachine, camera, renderer);
+        snow_render(wm->snowMachine, camera, renderer);
+    }
+
 }
 
 void weather_machine_destroy(WeatherMachine* wm)
@@ -1072,6 +1258,7 @@ void weather_machine_destroy(WeatherMachine* wm)
 
     rainmachine_destroy(wm->rainMachine);
     lightning_machine_destroy(wm->lightningMachine);
+    snowmachine_destroy(wm->snowMachine);
 
     free(wm);
 }

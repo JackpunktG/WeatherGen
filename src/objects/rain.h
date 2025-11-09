@@ -2,6 +2,7 @@
 #define RAIN_H
 #include "../../lib/SDL2/SDL2lib.h"
 #include "../../lib/arena_memory/arena_memory.h"
+#include "floatingtext.h"
 
 #include <SDL2/SDL.h>
 
@@ -21,6 +22,7 @@ typedef struct
 {
     Arena* arena;
     Droplet** drops;
+    uint32_t spwanRate; //drops per second
     size_t count;
     size_t maxCount;
 } RainMachine;
@@ -30,7 +32,7 @@ typedef struct
 RainMachine* rainmachine_init(size_t maxCount);
 
 //Spawns new rain
-void rain_spwan(RainMachine* rm, BoundingBox* rainBox, uint32_t count, float deltaTime);
+void rain_spwan(RainMachine* rm, BoundingBox* rainBox, float deltaTime);
 
 //updated rain possition
 //-value for wind goes left | + right  Value equated to pper second movenemt (Basicly xMaxVel)
@@ -57,18 +59,20 @@ typedef struct
     uint8_t intensity; // 1-5 offshoots && 6-10 main branch
 } LightningStrand;
 
+
 typedef struct
 {
     Arena* arena;
     LightningStrand** strands;
     uint8_t strandCount;
-    uint8_t strandMaxCount;
+    uint8_t strandMaxCount;  //for each lightning strike
     uint32_t frequence;   //cooldown between potential lightning strike
     float coolDownTimer;
     bool ready;
     uint8_t serverity;  //likelyhood of a lightning and how likely the intensity of the Strand is higher (1 - 10)
     float intervalTime;
     float intervalCooldownTimer; //for deltaTime in updating lightning per second
+    bool active;
 } LightningMachine;
 
 
@@ -103,6 +107,7 @@ typedef struct
     SnowPartical** snow;
     uint32_t snowLanded;
     uint32_t maxLanded;
+    uint32_t spwanRate; //snow per second
     size_t count;
     size_t maxCount;
 } SnowMachine;
@@ -111,7 +116,7 @@ typedef struct
 SnowMachine* snowmachine_init(size_t maxCount);
 
 //Spawns new rain
-void snow_spwan(SnowMachine* rm, BoundingBox* rainBox, uint32_t count, float deltaTime);
+void snow_spwan(SnowMachine* rm, BoundingBox* rainBox, float deltaTime);
 
 //updated rain possition
 //-value for wind goes left | + right  Value equated to pper second movenemt (Basicly xMaxVel)
@@ -132,14 +137,16 @@ typedef struct
     BoundingBox* weatherBox;
     RainMachine* rainMachine;
     LightningMachine* lightningMachine;
+    SnowMachine* snowMachine;
     bool lightningAfterBoost;  //true just as lightning has ended to fade lighting effect
     uint8_t fadeLevel;          //level of fade for after lightning effect
     float lightningAfterBoostTimer; //timer for the after boost effect
-
+    int wind;
     CollisionObjectList* environmentCollision;
 } WeatherMachine;
 
-WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t lightningMaxStrands, uint32_t lightningFrequence, uint8_t lightningServerity, BoundingBox* weatherBox, CollisionObjectList* environmentCollision);
+WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t maxStrands, uint32_t lightningFrequence, uint8_t lightningServerity, uint32_t snowMax, BoundingBox* weatherBox, CollisionObjectList* environmentCollision);
+void weather_machine_controls(WeatherMachine* wm, FloatingTextController* c, WindowConstSize* window, SDL_Event* e);
 void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRect* camera, float deltaTime);
 void weather_machine_destroy(WeatherMachine* wm);
 #endif
