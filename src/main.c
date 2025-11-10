@@ -102,8 +102,8 @@ int main(int argc, char* argv[])
     free(box1);
     free(circle1);
     weather_machine_destroy(wm);
-    free_SDL2(&window);
-    free_TTF(font);
     floating_text_controller_free(ftc);
+    free_TTF(font);
+    free_SDL2(&window);
     return 0;
 }

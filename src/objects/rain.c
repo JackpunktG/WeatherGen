@@ -969,7 +969,7 @@ void snow_render(SnowMachine* sm, BoundingBox* weatherBox, SDL_FRect* camera, SD
     if (!sm || !renderer)
         return;
 
-    printf("Landed Snow Particles Active: %u\n", sm->snowLanded);
+    //printf("Landed Snow Particles Active: %u\n", sm->snowLanded);
 
     for (size_t i = 0; i < sm->count; i++)
     {
