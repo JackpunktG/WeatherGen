@@ -122,7 +122,7 @@ void snow_spwan(SnowMachine* rm, BoundingBox* rainBox, float deltaTime);
 //-value for wind goes left | + right  Value equated to pper second movenemt (Basicly xMaxVel)
 void snow_update(SnowMachine* rm, BoundingBox* rainBox, float deltaTime, int wind, CollisionObjectList* collObjects);
 //render
-void snow_render(SnowMachine* rm, SDL_FRect* camera, SDL_Renderer* renderer);
+void snow_render(SnowMachine* rm, BoundingBox* weatherBox, SDL_FRect* camera, SDL_Renderer* renderer);
 
 //destory
 void snowmachine_destroy(SnowMachine* rm);
@@ -147,7 +147,7 @@ typedef struct
 
 WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t maxStrands, uint32_t lightningFrequence, uint8_t lightningServerity, uint32_t snowMax, BoundingBox* weatherBox, CollisionObjectList* environmentCollision);
 void weather_machine_controls(WeatherMachine* wm, FloatingTextController* c, WindowConstSize* window, SDL_Event* e);
-void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRect* camera, float deltaTime);
+void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, BoundingBox* weatherBox, SDL_FRect* camera, float deltaTime);
 void weather_machine_destroy(WeatherMachine* wm);
 #endif
 

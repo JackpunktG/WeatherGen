@@ -411,7 +411,7 @@ void lightning_machine_update(LightningMachine* lm, BoundingBox* weatherBox, flo
     if (lm->ready)
     {
         uint32_t roll = 1 + (rand() % 100000);  // dice roll between 1 - 100000;
-        printf("Lightning Roll: %d vs %d\n", roll, (lm->serverity * lm->serverity * lm->serverity + 30));
+        //printf("Lightning Roll: %d vs %d\n", roll, (lm->serverity * lm->serverity * lm->serverity + 30));
         if ((lm->serverity * lm->serverity * lm->serverity + 30) > roll)
         {
             short x = weatherBox->x + (weatherBox->width / 4) + (rand() % (weatherBox->width / 2));                         // getting a random starting point at the top of the weatherBox in the middle 3 / 4 of the box
@@ -869,7 +869,7 @@ void snow_update(SnowMachine* sm, BoundingBox* weatherBox, float deltaTime, int 
             if ((s->y > weatherBox->height - weatherBox->y) || box_detect_collision(&rect, colList, &sendBack, COLLISION_RETURN_FLOOR))
             {
                 s->landed = true;
-                if (s->y < weatherBox->y || s->y > weatherBox->y + weatherBox->height || s->x > weatherBox->x+weatherBox->width || s->x < weatherBox->x || sm->snowLanded > sm->maxLanded)
+                if (s->y <= weatherBox->y || s->y >= weatherBox->y + weatherBox->height || s->x >= weatherBox->x+weatherBox->width || s->x <= weatherBox->x || sm->snowLanded > sm->maxLanded)
                 {
                     s->snowDeath = true;
                     s->vY = 0;
@@ -964,10 +964,12 @@ void snow_update(SnowMachine* sm, BoundingBox* weatherBox, float deltaTime, int 
 }
 
 
-void snow_render(SnowMachine* sm, SDL_FRect* camera, SDL_Renderer* renderer)
+void snow_render(SnowMachine* sm, BoundingBox* weatherBox, SDL_FRect* camera, SDL_Renderer* renderer)
 {
     if (!sm || !renderer)
         return;
+
+    printf("Landed Snow Particles Active: %u\n", sm->snowLanded);
 
     for (size_t i = 0; i < sm->count; i++)
     {
@@ -979,6 +981,7 @@ void snow_render(SnowMachine* sm, SDL_FRect* camera, SDL_Renderer* renderer)
         }
         else if (s->landed && s->vY != 0)
         {
+            if (!s->snowDeath) assert(s->y < weatherBox->y && s->y > weatherBox->y + weatherBox->height && s->x < weatherBox->x+weatherBox->width && s->x > weatherBox->x); //make sure snow does not lay outside of the weather box
             for (int j = 0; j < s->size; j++)
                 draw_point(renderer, s->x + (s->size * 3) + 1 + (rand() % (j + 1)) - camera->x, s->y - (s->size + (rand() % s->size)) - camera->y, s->color);
 
@@ -1181,7 +1184,7 @@ void weather_machine_controls(WeatherMachine* wm, FloatingTextController* c, Win
     }
 }
 
-void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRect* camera, float deltaTime)
+void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, BoundingBox* weatherBox, SDL_FRect* camera, float deltaTime)
 {
     if (!wm || !renderer)
         return;
@@ -1193,15 +1196,13 @@ void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRec
         lightning_render(wm->lightningMachine, wm->weatherBox, camera, renderer);
         wm->lightningAfterBoost = true;
 
-        snow_render(wm->snowMachine, camera, renderer);
-
+        snow_render(wm->snowMachine, weatherBox, camera, renderer);
     }
     else if (wm->lightningAfterBoost)
     {
         wm->lightningAfterBoostTimer -= deltaTime;
         if (wm->fadeLevel < 55)
             wm->fadeLevel = (1 + (rand() % 2) > 1) ? wm->fadeLevel + 3 : wm->fadeLevel + 2;
-        // printf("HERE fade lvl %d\n", wm->fadeLevel);
         lightning_fade_rain_render(wm->rainMachine, wm->fadeLevel, camera, renderer);
 
         if (wm->lightningAfterBoostTimer <= 0)
@@ -1211,12 +1212,12 @@ void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, SDL_FRec
             wm->fadeLevel = 0;
         }
 
-        snow_render(wm->snowMachine, camera, renderer);
+        snow_render(wm->snowMachine, weatherBox, camera, renderer);
     }
     else
     {
         rain_render(wm->rainMachine, camera, renderer);
-        snow_render(wm->snowMachine, camera, renderer);
+        snow_render(wm->snowMachine, weatherBox, camera, renderer);
     }
 
 }

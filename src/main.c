@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
         camera_update(&window, &stickBro, OBJ_BOX, LEVEL_WIDTH, LEVEL_HEIGTH);
         draw_collision_environment(environmentCollision, &window.camera, window.renderer);
         box_filled_draw_camera(&stickBro, &window.camera, window.renderer, COLOR[LIGHT_GRAY]);
-        weather_machine_render(wm, window.renderer, &window.camera, deltaTime);
+        weather_machine_render(wm, window.renderer, screenBox, &window.camera, deltaTime);
         floating_text_controller_render(ftc, window.renderer);
         //box_filled_draw(&stickBro, window.renderer, COLOR[LIGHT_GRAY]);
         //circle_filled_draw(&dot, &window.camera, window.renderer,  COLOR[TEAL]);
