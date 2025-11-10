@@ -409,16 +409,28 @@ void render_texture_clip(Texture* texture, SDL_Renderer* renderer, SDL_Rect* cli
     }
 }
 
-void render_texture_fullscreen(Texture* texture, SDL_Renderer* renderer, uint32_t screenWidth, uint32_t screenHeight)
+void render_texture_background(Texture* texture, SDL_Renderer* renderer, SDL_FRect* camera, uint32_t levelWidth, uint32_t levelHeight)
 {
     if (texture->mTexture != NULL)
     {
-        SDL_Rect renderQuad = { 0, 0, screenWidth, screenHeight };
-        SDL_RenderCopy(renderer, texture->mTexture, NULL, &renderQuad);
+        // Get the texture's actual dimensions
+        int texWidth = texture->width;
+        int texHeight = texture->height;
+
+        // Calculate the scaling factors between texture and level
+        float scaleX = (float)texWidth / levelWidth;
+        float scaleY = (float)texHeight / levelHeight;
+
+        // Calculate which portion of the texture to show based on camera
+        SDL_Rect clip = {(int)(camera->x * scaleX), (int)(camera->y * scaleY), (int)(camera->w * scaleX), (int)(camera->h * scaleY)};
+
+        SDL_FRect dest = {0, 0, camera->w, camera->h};
+
+        SDL_RenderCopyF(renderer, texture->mTexture, &clip, &dest);
     }
     else
     {
-        printf("ERROR texture is NULL, cannot render fullscreen!\n");
+        printf("ERROR texture is NULL, cannot render background!\n");
     }
 }
 
@@ -508,6 +520,16 @@ void set_texture_blend_mode(Texture* texture, SDL_BlendMode blendMode)
     {
         printf("ERROR texture is NULL, cannot set blend mode!\n");
     }
+}
+
+static SDL_FRect world_frect_to_screen_frect(const SDL_FRect *camera, const SDL_FRect *world)
+{
+    SDL_FRect screen;
+    screen.x = world->x - camera->x;
+    screen.y = world->y - camera->y;
+    screen.w = world->w;
+    screen.h = world->h;
+    return screen;
 }
 //*************************************************************
 
@@ -1282,6 +1304,9 @@ void draw_basic_collision_rect(CollisionRect* cRect, SDL_FRect* camera, SDL_Rend
     draw_filled_rect(renderer, NULL, &renderRect, COLOR[GREEN]);
 }
 
+//void draw_textured_collision_rect(CollisionRect* cRect, SDL_FRect* camera, SDL_Renderer)
+
+
 CollisionCircle* collision_circle_init(float x, float y, short radius, Texture* texture, CollisionObjectList* environmentList)
 {
     CollisionCircle* cCircle = malloc(sizeof(CollisionCircle));
@@ -1304,9 +1329,9 @@ void draw_basic_collsion_circle(CollisionCircle* cCircle, SDL_FRect* camera, SDL
 
 // Circle functions
 //*************************************************************
-Circle circle_init(int x, int y, int radius, int maxVelX, int maxVelY)
+Circle circle_init(int x, int y, int radius, int maxVelX, int maxVelY, Texture* texture)
 {
-    Circle circle = {x, y, radius, 0, 0, maxVelX, maxVelY};
+    Circle circle = {x, y, radius, 0, 0, maxVelX, maxVelY, texture == NULL ? NULL : texture};
     return circle;
 }
 
@@ -1385,20 +1410,30 @@ void circle_outlined_draw(Circle* circle, SDL_FRect* camera, SDL_Renderer *rende
 {
     draw_outlined_circle(renderer, circle->x - camera->x, circle->y - camera->y, circle->radius, colour);
 }
+
+void circle_texture_render(Circle* circle, SDL_Renderer* renderer, SDL_FRect* camera, SDL_Rect* clip)
+{
+    SDL_FRect worldRect = {circle->x - circle->radius, circle->y - circle->radius, circle->radius *2, circle->radius *2};
+    SDL_FRect screen = world_frect_to_screen_frect(camera, &worldRect);
+
+    if (clip == NULL)
+        SDL_RenderCopyF(renderer, circle->texture->mTexture, NULL, &screen);
+}
+
 //*************************************************************
 
 
 //Box functions
 //*************************************************************
-Box box_init_basic(short x, short y, short width, short height, short maxVelX, short maxVelY)
+Box box_init_basic(short x, short y, short width, short height, short maxVelX, short maxVelY, Texture* texture)
 {
-    Box b = {{x, y, width, height,}, (float)x, (float)y, 0, false, false, false, 0, 0, maxVelX, maxVelY};
+    Box b = {{x, y, width, height,}, (float)x, (float)y, 0, false, false, false, 0, 0, maxVelX, maxVelY, texture == NULL ? NULL : texture};
     return b;
 }
 
-Box box_init_platformer_movement(short x, short y, short width, short height, float accelerating, short maxVelX, short jumpHeight)
+Box box_init_platformer_movement(short x, short y, short width, short height, float accelerating, short maxVelX, short jumpHeight, Texture* texture)
 {
-    Box b = {{x, y, width, height,}, (float)x, (float)y, accelerating, false, false, false, 0, 0, maxVelX, jumpHeight};
+    Box b = {{x, y, width, height,}, (float)x, (float)y, accelerating, false, false, false, 0, 0, maxVelX, jumpHeight, texture == NULL ? NULL : texture};
     return b;
 }
 
@@ -1589,7 +1624,6 @@ void box_move_free(Box* box, CollisionObjectList* colList, float deltaTime, enum
 }
 
 
-
 void box_outlined_draw(Box* box, SDL_Renderer* renderer, SDL_Color color)
 {
     draw_outlined_rect(renderer, &box->rect, color);
@@ -1598,15 +1632,8 @@ void box_filled_draw(Box* box, SDL_Renderer* renderer, SDL_Color color)
 {
     draw_filled_rect(renderer, &box->rect, NULL, color);
 }
-static SDL_FRect world_frect_to_screen_frect(const SDL_FRect *camera, const SDL_FRect *world)
-{
-    SDL_FRect screen;
-    screen.x = world->x - camera->x;
-    screen.y = world->y - camera->y;
-    screen.w = world->w;
-    screen.h = world->h;
-    return screen;
-}
+
+
 void box_filled_draw_camera(Box* box, SDL_FRect* camera, SDL_Renderer* renderer, SDL_Color color)
 {
     SDL_FRect worldRect = { box->x, box->y, box->rect.w, box->rect.h };
@@ -1614,6 +1641,21 @@ void box_filled_draw_camera(Box* box, SDL_FRect* camera, SDL_Renderer* renderer,
 
     draw_filled_rect(renderer, NULL, &screen, color);
 }
+
+void box_texture_render(Box* box, SDL_Renderer* renderer, SDL_FRect* camera, SDL_Rect* clip)
+{
+    SDL_FRect worldRect = { box->x, box->y, box->rect.w, box->rect.h };
+    SDL_FRect screen = world_frect_to_screen_frect(camera, &worldRect);
+
+    if (clip == NULL)
+        SDL_RenderCopyF(renderer, box->texture->mTexture, NULL, &screen);
+    else
+        SDL_RenderCopyF(renderer, box->texture->mTexture, clip, &screen);
+
+
+}
+
+
 //*************************************************************
 
 

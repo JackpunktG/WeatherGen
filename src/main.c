@@ -4,8 +4,8 @@
 
 #include <stdbool.h>
 
-#define LEVEL_WIDTH 1280
-#define LEVEL_HEIGTH 720
+#define LEVEL_WIDTH 2560
+#define LEVEL_HEIGTH 1440
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
@@ -26,18 +26,31 @@ int main(int argc, char* argv[])
         free_SDL2(&window);
         return 1;
     }
+    //textures
+    Texture background;
+    if(!load_texture_from_file(&background,  "src/assets/background.png", window.renderer))
+        return 1;
+    Texture stickBroTexture;
+    if(!load_texture_from_file(&stickBroTexture, "src/assets/box.png", window.renderer))
+        return 1;
+    Texture dotTexture;
+    if(!load_texture_from_file_colourKey(&dotTexture, "src/assets/dot.png", window.renderer, COLOR[MAGENTA]))
+        return 1;
+
+
     FloatingTextController* ftc = floating_text_controller_init(50, font);
+
+    /*Collision Stuff*/
     CollisionObjectList* environmentCollision = collision_object_list_init();
 
     BoundingBox* screenBox = bounding_box_init_screen(LEVEL_WIDTH, LEVEL_HEIGTH, environmentCollision);
-    collision_object_add(environmentCollision, screenBox, COLLISION_BOUNDING_BOX);
-    //test environment collision
+    CollisionRect* buttomLine = collision_rect_init(300, LEVEL_HEIGTH - 225, LEVEL_WIDTH - 550, 10, NULL, environmentCollision);
     CollisionRect* box1 = collision_rect_init(300, 600, 200, 50, NULL, environmentCollision);
     CollisionCircle* circle1 = collision_circle_init(800, 500, 35, NULL, environmentCollision);
 
-    //Circle dot = circle_init(100, 100, 5, 500, 500);
-    //collision_object_add(environmentCollision, &dot, COLLISION_CIRCLE);
-    Box stickBro = box_init_platformer_movement(500, 500, 200, 50, 0.15f, 400, 450);
+    Circle dot = circle_init(100, 100, 10, 500, 500, &dotTexture);
+    collision_object_add(environmentCollision, &dot, COLLISION_CIRCLE);
+    Box stickBro = box_init_platformer_movement(500, 500, 75, 125, 0.25f, 650, 520, &stickBroTexture);
     collision_object_add(environmentCollision, &stickBro, COLLISION_BOX);
 
     WeatherMachine* wm = weather_machine_init(100000, 1, 1, 1, 100000, screenBox, environmentCollision);
@@ -64,9 +77,8 @@ int main(int argc, char* argv[])
             weather_machine_controls(wm, ftc, &window, &e);
             window_size_update(&window, &e);
             motion_handle_event_wasd(&stickBro, OBJ_BOX, &e, MOTION_PLATFORMER);
-            //motion_handle_event_arrow_keys(&dot, OBJ_CIRCLE, &e, MOTION_FREE);
+            motion_handle_event_arrow_keys(&dot, OBJ_CIRCLE, &e, MOTION_FREE);
         }
-
         clear_screen_with_color(window.renderer, COLOR[GRAY]);
         Uint32 currentTime = SDL_GetTicks();
         float deltaTime = (currentTime - lastTime) / 1000.0f;
@@ -84,16 +96,18 @@ int main(int argc, char* argv[])
         snow_update(wm->snowMachine, screenBox, deltaTime, wm->wind, environmentCollision);
 
 
-
+        //Movement
         box_move_platformer(&stickBro, environmentCollision, deltaTime, CONTACT_STOP);
-        //circle_move_free(&dot, environmentCollision, deltaTime, CONTACT_BOUNCE_OFF);
+        circle_move_free(&dot, environmentCollision, deltaTime, CONTACT_BOUNCE_OFF);
         camera_update(&window, &stickBro, OBJ_BOX, LEVEL_WIDTH, LEVEL_HEIGTH);
+
+        //render
+        render_texture_background(&background, window.renderer, &window.camera, LEVEL_WIDTH, LEVEL_HEIGTH);
         draw_collision_environment(environmentCollision, &window.camera, window.renderer);
-        box_filled_draw_camera(&stickBro, &window.camera, window.renderer, COLOR[LIGHT_GRAY]);
+        box_texture_render(&stickBro, window.renderer, &window.camera, NULL);
         weather_machine_render(wm, window.renderer, screenBox, &window.camera, deltaTime);
         floating_text_controller_render(ftc, window.renderer);
-        //box_filled_draw(&stickBro, window.renderer, COLOR[LIGHT_GRAY]);
-        //circle_filled_draw(&dot, &window.camera, window.renderer,  COLOR[TEAL]);
+        circle_texture_render(&dot, window.renderer, &window.camera, NULL);
 
         SDL_RenderPresent(window.renderer);
     }
@@ -103,6 +117,11 @@ int main(int argc, char* argv[])
     free(circle1);
     weather_machine_destroy(wm);
     floating_text_controller_free(ftc);
+
+    free_texture(&background);
+    free_texture(&stickBroTexture);
+    free_texture(&dotTexture);
+
     free_TTF(font);
     free_SDL2(&window);
     return 0;

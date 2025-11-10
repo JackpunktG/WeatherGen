@@ -88,7 +88,7 @@ bool load_texture_from_rendered_text(Texture* texture, const char* text, TTF_Fon
 //render texture
 void render_texture(Texture* texture, SDL_Renderer* renderer, int x, int y);
 void render_texture_clip(Texture* texture, SDL_Renderer* renderer, SDL_Rect* clip, int x, int y);
-void render_texture_fullscreen(Texture* texture, SDL_Renderer* renderer, uint32_t screenWidth, uint32_t screenHeight);
+void render_texture_background(Texture* texture, SDL_Renderer* renderer, SDL_FRect* camera, uint32_t screenWidth, uint32_t screenHeight);
 void render_texture_scaled(Texture* texture, SDL_Renderer* renderer, int x, int y, int width, int height);
 void render_texture_rotated_clipped(Texture* texture, SDL_Renderer* renderer, SDL_Rect* clip, int x, int y, double angle, SDL_Point* center, SDL_RendererFlip flip);
 void render_texture_all_options(Texture* texture, SDL_Renderer* renderer,  SDL_Rect* clip, int x, int y, int width, int height, double angle, SDL_Point* center, SDL_RendererFlip flip);
@@ -230,15 +230,19 @@ typedef struct
     short radius;
     float velX, velY;
     short maxVelX, maxVelY;
+    Texture* texture;
 } Circle;
 
 
 //init circle
-Circle circle_init(int x, int y, int radius, int maxVelX, int maxVelY);
+Circle circle_init(int x, int y, int radius, int maxVelX, int maxVelY, Texture* texture);
 
 //motion
 //free "Space" style motion - can be modded with different collision effects
 void circle_move_free(Circle* circle, CollisionObjectList* colList, float deltaTime, enum COLLISION_CONTACT_EFFECT collEffect);
+
+//Rendering circle texture
+void circle_texture_render(Circle* circle, SDL_Renderer* renderer, SDL_FRect* camera, SDL_Rect* clip);
 
 //quick functions for rendering circle shapes
 //draw filled circle
@@ -258,11 +262,12 @@ typedef struct
     bool jumpKeyHeld;
     float velX, velY;
     short maxVelX, maxVelY; //maxY with platformer is changed max jump height and terminal velocity
+    Texture* texture;
 } Box;
 
 //init box
-Box box_init_basic(short x, short y, short width, short height, short maxVelX, short maxVelY);
-Box box_init_platformer_movement(short x, short y, short width, short height, float accelerating, short maxVelX, short jumpHeight);
+Box box_init_basic(short x, short y, short width, short height, short maxVelX, short maxVelY, Texture* texture);
+Box box_init_platformer_movement(short x, short y, short width, short height, float accelerating, short maxVelX, short jumpHeight, Texture* texture);
 
 //for box collision with send back
 bool box_detect_collision(SDL_Rect* box, CollisionObjectList* colList, short *sendBack, enum COLLISION_RETURN sendBackType);
@@ -273,6 +278,9 @@ void box_move_free(Box* box, CollisionObjectList* colList, float deltaTime, enum
 //required init_platformer setup
 // platformer style motion with gravity, jumping, left and right movement - effects
 void box_move_platformer(Box* box, CollisionObjectList* colList, float deltaTime, enum COLLISION_CONTACT_EFFECT collEffect);
+
+//rendering for textured Box (clip can be NULL is texture is the entire sprit)
+void box_texture_render(Box* box, SDL_Renderer* renderer, SDL_FRect* camera, SDL_Rect* clip);
 
 //quick rendering for basic Box shapes
 void box_outlined_draw(Box* box, SDL_Renderer* renderer, SDL_Color color);

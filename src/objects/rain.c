@@ -989,6 +989,64 @@ void snow_render(SnowMachine* sm, BoundingBox* weatherBox, SDL_FRect* camera, SD
     }
 }
 
+/*  Made no difference so no need to have a separate function for bright snow
+    Kept just for incase we want to tweak it later but not worth the processing power
+void lightning_snow_render(SnowMachine* sm, BoundingBox* weatherBox, SDL_FRect* camera, SDL_Renderer* renderer)
+{
+    if (!sm || !renderer)
+        return;
+
+    //printf("Landed Snow Particles Active: %u\n", sm->snowLanded);
+
+    for (size_t i = 0; i < sm->count; i++)
+    {
+        SnowPartical* s = sm->snow[i];
+        SDL_Color brightColor = {255, 255, 255, s->color.a};
+        if (!s->snowDeath)
+        {
+            SDL_FRect rect = {s->x - camera->x, s->y - camera->y, s->size, s->size * 3};
+            draw_filled_rect(renderer, NULL, &rect, brightColor);
+        }
+        else if (s->landed && s->vY != 0)
+        {
+            if (!s->snowDeath) assert(s->y < weatherBox->y && s->y > weatherBox->y + weatherBox->height && s->x < weatherBox->x+weatherBox->width && s->x > weatherBox->x); //make sure snow does not lay outside of the weather box
+            for (int j = 0; j < s->size; j++)
+                draw_point(renderer, s->x + (s->size * 3) + 1 + (rand() % (j + 1)) - camera->x, s->y - (s->size + (rand() % s->size)) - camera->y, brightColor);
+
+        }
+    }
+}
+
+void lightning_fade_snow_render(SnowMachine* sm, uint8_t fadeLevel, BoundingBox* weatherBox, SDL_FRect* camera, SDL_Renderer* renderer)
+{
+    if (!sm || !renderer)
+        return;
+
+    //printf("Landed Snow Particles Active: %u\n", sm->snowLanded);
+
+    for (size_t i = 0; i < sm->count; i++)
+    {
+        SnowPartical* s = sm->snow[i];
+        uint8_t r = (255 - fadeLevel > s->color.r) ? 255 - fadeLevel : s->color.r;
+        uint8_t g = (255 - fadeLevel > s->color.g) ? 255 - fadeLevel : s->color.g;
+        uint8_t b = (255 - fadeLevel > s->color.b) ? 255 - fadeLevel : s->color.b;
+
+        SDL_Color brightColor = {r, g, b, s->color.a};
+        if (!s->snowDeath)
+        {
+            SDL_FRect rect = {s->x - camera->x, s->y - camera->y, s->size, s->size * 3};
+            draw_filled_rect(renderer, NULL, &rect, brightColor);
+        }
+        else if (s->landed && s->vY != 0)
+        {
+            if (!s->snowDeath) assert(s->y < weatherBox->y && s->y > weatherBox->y + weatherBox->height && s->x < weatherBox->x+weatherBox->width && s->x > weatherBox->x); //make sure snow does not lay outside of the weather box
+            for (int j = 0; j < s->size; j++)
+                draw_point(renderer, s->x + (s->size * 3) + 1 + (rand() % (j + 1)) - camera->x, s->y - (s->size + (rand() % s->size)) - camera->y, brightColor);
+
+        }
+    }
+}*/
+
 void snowmachine_destroy(SnowMachine* sm)
 {
     if (!sm)
@@ -1192,8 +1250,6 @@ void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, Bounding
         lightning_rain_render(wm->rainMachine, camera, renderer);
         lightning_render(wm->lightningMachine, wm->weatherBox, camera, renderer);
         wm->lightningAfterBoost = true;
-
-        snow_render(wm->snowMachine, weatherBox, camera, renderer);
     }
     else if (wm->lightningAfterBoost)
     {
@@ -1201,21 +1257,17 @@ void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, Bounding
         if (wm->fadeLevel < 55)
             wm->fadeLevel = (1 + (rand() % 2) > 1) ? wm->fadeLevel + 3 : wm->fadeLevel + 2;
         lightning_fade_rain_render(wm->rainMachine, wm->fadeLevel, camera, renderer);
-
         if (wm->lightningAfterBoostTimer <= 0)
         {
             wm->lightningAfterBoost = false;
             wm->lightningAfterBoostTimer = 0.4f;
             wm->fadeLevel = 0;
         }
-
-        snow_render(wm->snowMachine, weatherBox, camera, renderer);
     }
     else
-    {
         rain_render(wm->rainMachine, camera, renderer);
-        snow_render(wm->snowMachine, weatherBox, camera, renderer);
-    }
+
+    snow_render(wm->snowMachine, weatherBox, camera, renderer);
 
 }
 
