@@ -1033,9 +1033,6 @@ WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t maxStrands, ui
         return NULL;
     }
 
-
-
-
     wm->weatherBox = weatherBox;
     wm->environmentCollision = environmentCollision;
 
@@ -1066,7 +1063,7 @@ void weather_machine_controls(WeatherMachine* wm, FloatingTextController* c, Win
         else
         {
             lightning_machine_reset(wm->lightningMachine);
-            wm->lightningMachine->ready = false;
+            wm->lightningMachine->active = false;
             floating_text_add(c, window, "LIGHTNING DEACTIVATED", COLOR[BLACK]);
         }
         break;

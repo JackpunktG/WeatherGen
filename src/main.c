@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     collision_object_add(environmentCollision, &stickBro, COLLISION_BOX);
 
     WeatherMachine* wm = weather_machine_init(100000, 1, 1, 1, 100000, screenBox, environmentCollision);
-    //if (!rm) return 1;
+    if (!wm) return 1;
 
     bool running = true;
     SDL_Event e;
