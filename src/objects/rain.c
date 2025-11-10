@@ -410,8 +410,9 @@ void lightning_machine_update(LightningMachine* lm, BoundingBox* weatherBox, flo
 
     if (lm->ready)
     {
-        uint8_t roll = 1 + (rand() % 30);  // dice roll between 1 - 30;
-        if (lm->serverity > roll)
+        uint32_t roll = 1 + (rand() % 100000);  // dice roll between 1 - 100000;
+        printf("Lightning Roll: %d vs %d\n", roll, (lm->serverity * lm->serverity * lm->serverity + 30));
+        if ((lm->serverity * lm->serverity * lm->serverity + 30) > roll)
         {
             short x = weatherBox->x + (weatherBox->width / 4) + (rand() % (weatherBox->width / 2));                         // getting a random starting point at the top of the weatherBox in the middle 3 / 4 of the box
             lm->strands[lm->strandCount++] = spawn_lightning(lm, x, weatherBox->y, lm->serverity > 5 ? lm->serverity : 6);  // making this one always a main branch
@@ -426,7 +427,6 @@ void lightning_machine_update(LightningMachine* lm, BoundingBox* weatherBox, flo
         if (lm->strands[i]->count <= lm->strands[i]->maxCount)
             return;
     }
-    //printf("RESETTING LIGHTNING MACHINE\n");
     lightning_machine_reset(lm);
 }
 
@@ -596,9 +596,7 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
                 build_out_small_strand(ls->lightningPoints[ls->count - 2], ls->lightningPoints[ls->count - 1], l);
             }
         }
-        //ls->lightningPoints[ls->count++] = l; //reassigning the point and incrementing
-        ++ls->count;  //incrementing count
-        //printf("X %f | Y %f\n", l->x, l->y);
+        ++ls->count;  //incrementing count breaks if done earlier
     }
 
     if (lm->strandCount > lm->strandMaxCount)
@@ -614,7 +612,6 @@ void lightning_strand_grow(LightningMachine* lm, BoundingBox* weatherBox, float 
         short diceRoll = (ls->intensity * 2) + (rand() % 100);
         if (diceRoll > 50 && lm->strandCount < lm->strandMaxCount)
             lm->strands[lm->strandCount++] = spawn_lightning(lm, ls->lightningPoints[ls->count - 1]->x, ls->lightningPoints[ls->count - 1]->y, ls->intensity > 6 ? (4 + rand() % 3) : (ls->intensity - 1) + rand() % 1);
-        // lm->strands[lm->strandCount++] = spawn_lightning(lm, 20, 20, ls->intensity > 6 ? (4 + rand() % 3) : (ls->intensity - 1) + rand() % 1);
     }
 }
 
@@ -623,41 +620,17 @@ void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_FRect* camera, 
     if (lm->strandCount < 1 || !lm || !renderer)
         return;
 
-    // printf("--------- LOOP ----------------\n");
-
-    for (int i = 0; i < lm->strandCount && i < lm->strandMaxCount; ++i)
+    for (int i = 0; i < lm->strandCount; ++i)
     {
+        if(lm->strands[i]->count < 2) continue; //skipping newly spawned strands with less than 2 points
+
         LightningStrand* ls = lm->strands[i];
 
-        if(ls->count < 2) continue;
 
         for (int k = 1; k < ls->count; ++k)
         {
-
-            /*  JANKY FIX FOR POINTS BEING FREE OR OVERWRITTEN EARLY RESULTING IN GARAGBE POINT TRYING TO BE DRAWN --- REQUIRES DEBUGGING  */
-            if (ls->lightningPoints[k - 1]->x < wB->x || ls->lightningPoints[k]->x < wB->x)
-            {
-
-                printf("1strandCount %d k = %d\n", i, k);
-                printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
-                printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
-                continue;
-            }
-            else if (ls->lightningPoints[k - 1]->x > (wB->width + wB->x)|| ls->lightningPoints[k]->x > (wB->width + wB->x))
-            {
-                printf("2strandCount %d k = %d\n", i, k);
-                printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
-                printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
-                continue;
-            }
-            else if (ls->lightningPoints[k - 1]->x < 0 || ls->lightningPoints[k - 1]->y < 0 || ls->lightningPoints[k]->x < 0 || ls->lightningPoints[k]->y < 0)
-            {
-                printf("3strandCount %d k = %d\n", i, k);
-                printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k - 1]->x, ls->lightningPoints[k - 1]->y);
-                printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k]->y);
-                continue;
-            }
-
+            assert(ls->lightningPoints[k]->x > -100 && ls->lightningPoints[k]->y >= 0 && ls->lightningPoints[k -1]->x > -100 && ls->lightningPoints[k - 1]->y >= 0); //sanity check for lightning points (-100 to allow for off screen points if lightning is generated close to edge)
+            assert(ls->lightningPoints[k]->x < 10000 && ls->lightningPoints[k]->y < 10000 && ls->lightningPoints[k -1]->x < 10000 && ls->lightningPoints[k - 1]->y < 10000); //sanity check for lightning points to see if and garbage data is being used
             if (ls->intensity > 5)
             {
                 draw_line_float(renderer, ls->lightningPoints[k - 1]->x - camera->x, ls->lightningPoints[k - 1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
@@ -672,9 +645,6 @@ void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_FRect* camera, 
             }
             else
                 draw_line_float(renderer, ls->lightningPoints[k - 1]->x - camera->x, ls->lightningPoints[k - 1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
-
-            // printf("-- PT1 x: %0.2f  y: %0.2f -- ", ls->lightningPoints[k-1]->x, ls->lightningPoints[k-1]->y);
-            // printf("PT2 x: %0.2f  y: %0.2f --\n", ls->lightningPoints[k]->x, ls->lightningPoints[k-1]->y);
         }
     }
 }

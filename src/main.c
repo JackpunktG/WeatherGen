@@ -97,7 +97,10 @@ int main(int argc, char* argv[])
 
         SDL_RenderPresent(window.renderer);
     }
-
+    free_collision_object_list(environmentCollision);
+    free(screenBox);
+    free(box1);
+    free(circle1);
     weather_machine_destroy(wm);
     free_SDL2(&window);
     free_TTF(font);
