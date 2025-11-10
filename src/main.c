@@ -46,11 +46,18 @@ int main(int argc, char* argv[])
     BoundingBox* screenBox = bounding_box_init_screen(LEVEL_WIDTH, LEVEL_HEIGTH, environmentCollision);
     CollisionRect* buttomLine = collision_rect_init(300, LEVEL_HEIGTH - 225, LEVEL_WIDTH - 550, 10, NULL, environmentCollision);
     CollisionRect* box1 = collision_rect_init(300, 600, 200, 50, NULL, environmentCollision);
-    CollisionCircle* circle1 = collision_circle_init(800, 500, 35, NULL, environmentCollision);
+    CollisionRect* box2 = collision_rect_init(800, 775, 50, 300, NULL, environmentCollision);
+    CollisionCircle* circle1 = collision_circle_init(810, 500, 35, NULL, environmentCollision);
+    CollisionCircle* circle2 = collision_circle_init(1675, 1000, 55, NULL, environmentCollision);
+    CollisionCircle* circle3 = collision_circle_init(1675, 300, 25, NULL, environmentCollision);
+    CollisionCircle* circle4 = collision_circle_init(1800, 600, 15, NULL, environmentCollision);
+    CollisionCircle* circle6 = collision_circle_init(1400, 600, 10, NULL, environmentCollision);
+    CollisionCircle* circle7 = collision_circle_init(2200, 500, 25, NULL, environmentCollision);
+    CollisionCircle* circle5 = collision_circle_init(2000, 300, 80, NULL, environmentCollision);
 
-    Circle dot = circle_init(100, 100, 10, 500, 500, &dotTexture);
+    Circle dot = circle_init(100, 1000, 10, 500, 500, &dotTexture);
     collision_object_add(environmentCollision, &dot, COLLISION_CIRCLE);
-    Box stickBro = box_init_platformer_movement(500, 500, 75, 125, 0.25f, 650, 520, &stickBroTexture);
+    Box stickBro = box_init_platformer_movement(500, 500, 75, 125, 0.25f, 650, 480, &stickBroTexture);
     collision_object_add(environmentCollision, &stickBro, COLLISION_BOX);
 
     WeatherMachine* wm = weather_machine_init(100000, 1, 1, 1, 100000, screenBox, environmentCollision);
