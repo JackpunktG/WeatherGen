@@ -387,8 +387,21 @@ void render_texture(Texture* texture, SDL_Renderer* renderer, int x, int y)
 {
     if (texture->mTexture != NULL)
     {
-        SDL_Rect renderQuad = { x, y, texture->width, texture->height };
-        SDL_RenderCopy(renderer, texture->mTexture, NULL, &renderQuad);
+        SDL_FRect renderQuad = { x, y, texture->width, texture->height };
+        SDL_RenderCopyF(renderer, texture->mTexture, NULL, &renderQuad);
+    }
+    else
+    {
+        printf("ERROR texture is NULL, cannot render!\n");
+    }
+}
+
+void render_texture_camera(Texture* texture, SDL_Renderer* renderer,SDL_FRect* camera, int x, int y)
+{
+    if (texture->mTexture != NULL)
+    {
+        SDL_FRect renderQuad = { x - camera->x, y - camera->y, texture->width, texture->height };
+        SDL_RenderCopyF(renderer, texture->mTexture, NULL, &renderQuad);
     }
     else
     {
@@ -1837,7 +1850,7 @@ void fps_timer_calc_and_render(Timer* timer, Texture* texture,SDL_Renderer* rend
         return;
     }
 
-    render_texture(texture, renderer, x, y);
+    render_texture(texture, renderer,x, y);
 }
 
 //*************************************************************

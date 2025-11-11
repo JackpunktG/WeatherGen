@@ -87,6 +87,7 @@ bool load_texture_from_rendered_text(Texture* texture, const char* text, TTF_Fon
 
 //render texture
 void render_texture(Texture* texture, SDL_Renderer* renderer, int x, int y);
+void render_texture_camera(Texture* texture, SDL_Renderer* renderer,SDL_FRect* camera, int x, int y);
 void render_texture_clip(Texture* texture, SDL_Renderer* renderer, SDL_Rect* clip, int x, int y);
 void render_texture_background(Texture* texture, SDL_Renderer* renderer, SDL_FRect* camera, uint32_t screenWidth, uint32_t screenHeight);
 void render_texture_scaled(Texture* texture, SDL_Renderer* renderer, int x, int y, int width, int height);

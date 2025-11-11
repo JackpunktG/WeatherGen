@@ -62,9 +62,10 @@ int main(int argc, char* argv[])
     CollisionCircle* circle5 = collision_circle_init(2000, 300, 80, &circleTexture, environmentCollision);
 
     Circle dot = circle_init(100, 1000, 10, 500, 500, &dotTexture);
+    dot.clipIndex = 1;
     collision_object_add(environmentCollision, &dot, COLLISION_CIRCLE);
     Box stickBro = box_init_platformer_movement(500, 500, 75, 125, 0.25f, 650, 480, &stickBroTexture);
-    stickBro.clipIndex = 1; //set to walking clip
+    stickBro.clipIndex = 1;
     collision_object_add(environmentCollision, &stickBro, COLLISION_BOX);
 
     WeatherMachine* wm = weather_machine_init(100000, 1, 1, 1, 100000, screenBox, environmentCollision);
@@ -115,6 +116,11 @@ int main(int argc, char* argv[])
         circle_move_free(&dot, environmentCollision, deltaTime, CONTACT_BOUNCE_OFF);
         camera_update(&window, &stickBro, OBJ_BOX, LEVEL_WIDTH, LEVEL_HEIGTH);
 
+        Texture SnowCount;
+        char SnowCountBuff[50];
+        sprintf(SnowCountBuff, "SnowLanded: %d", wm->snowMachine->snowLanded);
+        load_texture_from_rendered_text(&SnowCount, SnowCountBuff, font, COLOR[WHITE],window.renderer);
+
         //render
         render_texture_background(&background, window.renderer, &window.camera, LEVEL_WIDTH, LEVEL_HEIGTH);
         draw_collision_environment(environmentCollision, &window.camera, window.renderer);
@@ -122,6 +128,7 @@ int main(int argc, char* argv[])
         weather_machine_render(wm, window.renderer, screenBox, &window.camera, deltaTime);
         floating_text_controller_render(ftc, window.renderer);
         circle_texture_render(&dot, window.renderer, &window.camera);
+        render_texture_camera(&SnowCount, window.renderer, &window.camera, 10, 100);
 
         SDL_RenderPresent(window.renderer);
     }
