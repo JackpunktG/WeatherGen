@@ -1,2 +1,4 @@
 *.o
+valgrind*
+*.xcf
 RainGen

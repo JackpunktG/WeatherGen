@@ -880,6 +880,8 @@ void collision_object_add(CollisionObjectList* colList, void* object, COLLISION_
 
 void draw_basic_collision_rect(CollisionRect* cRect, SDL_FRect* camera, SDL_Renderer* renderer);
 void draw_basic_collsion_circle(CollisionCircle* cCircle, SDL_FRect* camera, SDL_Renderer* renderer);
+void draw_textured_collision_rect(CollisionRect* cRect, SDL_FRect* camera, SDL_Renderer* renderer);
+void draw_textured_collision_circle(CollisionCircle* cCircle, SDL_FRect* camera, SDL_Renderer* renderer);
 void draw_collision_environment(CollisionObjectList* environmentList, SDL_FRect* camera, SDL_Renderer* renderer)
 {
     for (int i = 0; i < environmentList->totalObjects; i++)
@@ -893,14 +895,14 @@ void draw_collision_environment(CollisionObjectList* environmentList, SDL_FRect*
         {
             CollisionRect* cR = (CollisionRect *)environmentList->obj[i];
             if (cR->texture == NULL) draw_basic_collision_rect(cR, camera, renderer);
-            else render_texture(cR->texture, renderer, cR->rect.x, cR->rect.y);
+            else draw_textured_collision_rect(cR, camera, renderer);
             break;
         }
         case COLLISION_ENVIRONMENT_CIRCLE:
         {
             CollisionCircle* cC = (CollisionCircle *)environmentList->obj[i];
             if (cC->texture == NULL) draw_basic_collsion_circle(cC, camera, renderer);
-            else render_texture(cC->texture, renderer, cC->x, cC->y);
+            else draw_textured_collision_circle(cC, camera, renderer);
             break;
         }
         default:
@@ -928,14 +930,46 @@ void circle_free_movement_arrow_keys(Circle* circle, SDL_Event* e)
         {
         case SDLK_UP:
             circle->velY -= circle->maxVelY;
+            if (circle->clipIndex == 1)
+                circle->clipIndex = 2;
+            else if (circle->clipIndex == 3 || circle->clipIndex == 8)
+                circle->clipIndex = 6;
+            else if (circle->clipIndex == 4 || circle->clipIndex == 9)
+                circle->clipIndex = 7;
+            else
+                circle->clipIndex = 2;
             break;
         case SDLK_DOWN:
             circle->velY += circle->maxVelY;
+            if (circle->clipIndex == 1)
+                circle->clipIndex = 5;
+            else if (circle->clipIndex == 3 || circle->clipIndex == 6)
+                circle->clipIndex = 8;
+            else if (circle->clipIndex == 7 || circle->clipIndex == 4)
+                circle->clipIndex = 9;
+            else
+                circle->clipIndex = 5;
             break;
         case SDLK_LEFT:
+            if (circle->clipIndex == 1)
+                circle->clipIndex = 4;
+            else if (circle->clipIndex == 2 || circle->clipIndex == 6)
+                circle->clipIndex = 7;
+            else if (circle->clipIndex == 5 || circle->clipIndex == 8)
+                circle->clipIndex = 9;
+            else
+                circle->clipIndex = 4;
             circle->velX -= circle->maxVelX;
             break;
         case SDLK_RIGHT:
+            if (circle->clipIndex == 1)
+                circle->clipIndex = 3;
+            else if (circle->clipIndex == 2 || circle->clipIndex == 7)
+                circle->clipIndex = 6;
+            else if (circle->clipIndex == 5 || circle->clipIndex == 9)
+                circle->clipIndex = 8;
+            else
+                circle->clipIndex = 3;
             circle->velX += circle->maxVelX;
             break;
         }
@@ -947,15 +981,47 @@ void circle_free_movement_arrow_keys(Circle* circle, SDL_Event* e)
         {
         case SDLK_UP:
             circle->velY += circle->maxVelY;
+            if (circle->clipIndex == 2)
+                circle->clipIndex = 1;
+            else if (circle->clipIndex == 6 || circle->clipIndex == 8)
+                circle->clipIndex = 3;
+            else if (circle->clipIndex == 7 || circle->clipIndex == 9)
+                circle->clipIndex = 4;
+            else
+                circle->clipIndex = 1;
             break;
         case SDLK_DOWN:
             circle->velY -= circle->maxVelY;
+            if (circle->clipIndex == 5)
+                circle->clipIndex = 1;
+            else if (circle->clipIndex == 8 || circle->clipIndex == 6)
+                circle->clipIndex = 3;
+            else if (circle->clipIndex == 9 || circle->clipIndex == 7)
+                circle->clipIndex = 4;
+            else
+                circle->clipIndex = 1;
             break;
         case SDLK_LEFT:
             circle->velX += circle->maxVelX;
+            if (circle->clipIndex == 4)
+                circle->clipIndex = 1;
+            else if (circle->clipIndex == 7 || circle->clipIndex == 9)
+                circle->clipIndex = 5;
+            else if (circle->clipIndex == 6 || circle->clipIndex == 8)
+                circle->clipIndex = 3;
+            else
+                circle->clipIndex = 1;
             break;
         case SDLK_RIGHT:
             circle->velX -= circle->maxVelX;
+            if (circle->clipIndex == 3)
+                circle->clipIndex = 1;
+            else if (circle->clipIndex == 6 || circle->clipIndex == 8)
+                circle->clipIndex = 5;
+            else if (circle->clipIndex == 7 || circle->clipIndex == 9)
+                circle->clipIndex = 4;
+            else
+                circle->clipIndex = 1;
             break;
         }
     }
@@ -1182,11 +1248,14 @@ void box_platformer_movement_wasd(Box *box, SDL_Event* e)
         {
         case SDLK_a:
             box->leftKeyHeld = true;
+            box->clipIndex = 3;
             break;
         case SDLK_d:
             box->rightKeyHeld = true;
+            box->clipIndex = 2;
             break;
         case SDLK_SPACE:
+            box->clipIndex = 4;
             if (box->velY == 0 && !box->jumpKeyHeld) box->jumpKeyHeld = true; //jump
             break;
         }
@@ -1198,11 +1267,14 @@ void box_platformer_movement_wasd(Box *box, SDL_Event* e)
         {
         case SDLK_a:
             box->leftKeyHeld = false;
+            box->clipIndex = 1;
             break;
         case SDLK_d:
             box->rightKeyHeld = false;
+            box->clipIndex = 1;
             break;
         case SDLK_SPACE:
+            box->clipIndex = 1;
             box->jumpKeyHeld = false;
             if (box->velY < -(box->maxVelY /1.4)) box->velY /= 1.2; //damping the jump if keey is released early
             break;
@@ -1304,7 +1376,11 @@ void draw_basic_collision_rect(CollisionRect* cRect, SDL_FRect* camera, SDL_Rend
     draw_filled_rect(renderer, NULL, &renderRect, COLOR[GREEN]);
 }
 
-//void draw_textured_collision_rect(CollisionRect* cRect, SDL_FRect* camera, SDL_Renderer)
+void draw_textured_collision_rect(CollisionRect* cRect, SDL_FRect* camera, SDL_Renderer* renderer)
+{
+    SDL_FRect renderRect = {cRect->rect.x - camera->x, cRect->rect.y - camera->y, cRect->rect.w, cRect->rect.h};
+    SDL_RenderCopyF(renderer, cRect->texture->mTexture, NULL, &renderRect);
+}
 
 
 CollisionCircle* collision_circle_init(float x, float y, short radius, Texture* texture, CollisionObjectList* environmentList)
@@ -1325,13 +1401,19 @@ void draw_basic_collsion_circle(CollisionCircle* cCircle, SDL_FRect* camera, SDL
     draw_filled_circle(renderer, (int)(cCircle->x - camera->x), (int)(cCircle->y - camera->y), cCircle->radius, COLOR[GREEN]);
 }
 
+void draw_textured_collision_circle(CollisionCircle* cCircle, SDL_FRect* camera, SDL_Renderer* renderer)
+{
+    SDL_FRect renderRect = {cCircle->x - cCircle->radius - camera->x, cCircle->y - cCircle->radius - camera->y, cCircle->radius *2, cCircle->radius *2};
+    SDL_RenderCopyF(renderer, cCircle->texture->mTexture, NULL, &renderRect);
+}
+
 //*************************************************************
 
 // Circle functions
 //*************************************************************
 Circle circle_init(int x, int y, int radius, int maxVelX, int maxVelY, Texture* texture)
 {
-    Circle circle = {x, y, radius, 0, 0, maxVelX, maxVelY, texture == NULL ? NULL : texture};
+    Circle circle = {x, y, radius, 0, 0, maxVelX, maxVelY, texture == NULL ? NULL : texture, 0};
     return circle;
 }
 
@@ -1385,6 +1467,7 @@ void circle_move_free(Circle* circle, CollisionObjectList* colList, float deltaT
             if (collEffect == CONTACT_BOUNCE_OFF) circle->x -= circle->velX * deltaTime *2;
             else if (collEffect == CONTACT_STOP) circle->x -= circle->velX * deltaTime;
             //else if (collEffect == CONTACT_DESTROY) { /* Handle destruction if needed */
+            circle->clipIndex = 10;
         }
     }
 
@@ -1397,6 +1480,7 @@ void circle_move_free(Circle* circle, CollisionObjectList* colList, float deltaT
             if (collEffect == CONTACT_BOUNCE_OFF) circle->y -= circle->velY * deltaTime *2;
             else if (collEffect == CONTACT_STOP) circle->y -= circle->velY * deltaTime;
             //else if (collEffect == CONTACT_DESTROY) { /* Handle destruction if needed */
+            circle->clipIndex = 10;
         }
     }
 }
@@ -1411,13 +1495,18 @@ void circle_outlined_draw(Circle* circle, SDL_FRect* camera, SDL_Renderer *rende
     draw_outlined_circle(renderer, circle->x - camera->x, circle->y - camera->y, circle->radius, colour);
 }
 
-void circle_texture_render(Circle* circle, SDL_Renderer* renderer, SDL_FRect* camera, SDL_Rect* clip)
+void circle_texture_render(Circle* circle, SDL_Renderer* renderer, SDL_FRect* camera)
 {
     SDL_FRect worldRect = {circle->x - circle->radius, circle->y - circle->radius, circle->radius *2, circle->radius *2};
     SDL_FRect screen = world_frect_to_screen_frect(camera, &worldRect);
 
-    if (clip == NULL)
+    if (circle->clipIndex == 0)
         SDL_RenderCopyF(renderer, circle->texture->mTexture, NULL, &screen);
+    else
+    {
+        SDL_Rect clipRect = {0, circle->clipIndex * (circle->radius * 2) - circle->radius * 2, circle->radius *2, circle->radius *2};
+        SDL_RenderCopyF(renderer, circle->texture->mTexture, &clipRect, &screen);
+    }
 }
 
 //*************************************************************
@@ -1427,13 +1516,13 @@ void circle_texture_render(Circle* circle, SDL_Renderer* renderer, SDL_FRect* ca
 //*************************************************************
 Box box_init_basic(short x, short y, short width, short height, short maxVelX, short maxVelY, Texture* texture)
 {
-    Box b = {{x, y, width, height,}, (float)x, (float)y, 0, false, false, false, 0, 0, maxVelX, maxVelY, texture == NULL ? NULL : texture};
+    Box b = {{x, y, width, height,}, (float)x, (float)y, 0, false, false, false, 0, 0, maxVelX, maxVelY, texture == NULL ? NULL : texture, 0};
     return b;
 }
 
 Box box_init_platformer_movement(short x, short y, short width, short height, float accelerating, short maxVelX, short jumpHeight, Texture* texture)
 {
-    Box b = {{x, y, width, height,}, (float)x, (float)y, accelerating, false, false, false, 0, 0, maxVelX, jumpHeight, texture == NULL ? NULL : texture};
+    Box b = {{x, y, width, height,}, (float)x, (float)y, accelerating, false, false, false, 0, 0, maxVelX, jumpHeight, texture == NULL ? NULL : texture, 0};
     return b;
 }
 
@@ -1642,15 +1731,18 @@ void box_filled_draw_camera(Box* box, SDL_FRect* camera, SDL_Renderer* renderer,
     draw_filled_rect(renderer, NULL, &screen, color);
 }
 
-void box_texture_render(Box* box, SDL_Renderer* renderer, SDL_FRect* camera, SDL_Rect* clip)
+void box_texture_render(Box* box, SDL_Renderer* renderer, SDL_FRect* camera)
 {
     SDL_FRect worldRect = { box->x, box->y, box->rect.w, box->rect.h };
     SDL_FRect screen = world_frect_to_screen_frect(camera, &worldRect);
 
-    if (clip == NULL)
+    if (box->clipIndex == 0)
         SDL_RenderCopyF(renderer, box->texture->mTexture, NULL, &screen);
     else
-        SDL_RenderCopyF(renderer, box->texture->mTexture, clip, &screen);
+    {
+        SDL_Rect clip = {0, box->clipIndex * box->rect.h - box->rect.h, box->rect.w, box->rect.h};
+        SDL_RenderCopyF(renderer, box->texture->mTexture, &clip, &screen);
+    }
 
 
 }

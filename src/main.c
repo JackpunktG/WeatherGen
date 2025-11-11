@@ -31,10 +31,16 @@ int main(int argc, char* argv[])
     if(!load_texture_from_file(&background,  "src/assets/background.png", window.renderer))
         return 1;
     Texture stickBroTexture;
-    if(!load_texture_from_file(&stickBroTexture, "src/assets/box.png", window.renderer))
+    if(!load_texture_from_file(&stickBroTexture, "src/assets/box_clips.png", window.renderer))
         return 1;
     Texture dotTexture;
-    if(!load_texture_from_file_colourKey(&dotTexture, "src/assets/dot.png", window.renderer, COLOR[MAGENTA]))
+    if(!load_texture_from_file_colourKey(&dotTexture, "src/assets/dot_clips.png", window.renderer, COLOR[CYAN]))
+        return 1;
+    Texture rectTexture;
+    if(!load_texture_from_file(&rectTexture, "src/assets/rec_texture.png", window.renderer))
+        return 1;
+    Texture circleTexture;
+    if(!load_texture_from_file_colourKey(&circleTexture, "src/assets/circle_texture.png", window.renderer, COLOR[CYAN]))
         return 1;
 
 
@@ -44,20 +50,21 @@ int main(int argc, char* argv[])
     CollisionObjectList* environmentCollision = collision_object_list_init();
 
     BoundingBox* screenBox = bounding_box_init_screen(LEVEL_WIDTH, LEVEL_HEIGTH, environmentCollision);
-    CollisionRect* buttomLine = collision_rect_init(300, LEVEL_HEIGTH - 225, LEVEL_WIDTH - 550, 10, NULL, environmentCollision);
-    CollisionRect* box1 = collision_rect_init(300, 600, 200, 50, NULL, environmentCollision);
-    CollisionRect* box2 = collision_rect_init(800, 775, 50, 300, NULL, environmentCollision);
-    CollisionCircle* circle1 = collision_circle_init(810, 500, 35, NULL, environmentCollision);
-    CollisionCircle* circle2 = collision_circle_init(1675, 1000, 55, NULL, environmentCollision);
-    CollisionCircle* circle3 = collision_circle_init(1675, 300, 25, NULL, environmentCollision);
-    CollisionCircle* circle4 = collision_circle_init(1800, 600, 15, NULL, environmentCollision);
-    CollisionCircle* circle6 = collision_circle_init(1400, 600, 10, NULL, environmentCollision);
-    CollisionCircle* circle7 = collision_circle_init(2200, 500, 25, NULL, environmentCollision);
-    CollisionCircle* circle5 = collision_circle_init(2000, 300, 80, NULL, environmentCollision);
+    CollisionRect* buttomLine = collision_rect_init(300, LEVEL_HEIGTH - 225, LEVEL_WIDTH - 550, 10, &rectTexture, environmentCollision);
+    CollisionRect* box1 = collision_rect_init(300, 600, 200, 50, &rectTexture, environmentCollision);
+    CollisionRect* box2 = collision_rect_init(800, 775, 50, 300, &rectTexture, environmentCollision);
+    CollisionCircle* circle1 = collision_circle_init(810, 500, 35, &circleTexture, environmentCollision);
+    CollisionCircle* circle2 = collision_circle_init(1675, 1000, 55, &circleTexture, environmentCollision);
+    CollisionCircle* circle3 = collision_circle_init(1675, 300, 25, &circleTexture, environmentCollision);
+    CollisionCircle* circle4 = collision_circle_init(1800, 600, 15, &circleTexture, environmentCollision);
+    CollisionCircle* circle6 = collision_circle_init(1400, 600, 10, &circleTexture, environmentCollision);
+    CollisionCircle* circle7 = collision_circle_init(2200, 500, 25, &circleTexture, environmentCollision);
+    CollisionCircle* circle5 = collision_circle_init(2000, 300, 80, &circleTexture, environmentCollision);
 
     Circle dot = circle_init(100, 1000, 10, 500, 500, &dotTexture);
     collision_object_add(environmentCollision, &dot, COLLISION_CIRCLE);
     Box stickBro = box_init_platformer_movement(500, 500, 75, 125, 0.25f, 650, 480, &stickBroTexture);
+    stickBro.clipIndex = 1; //set to walking clip
     collision_object_add(environmentCollision, &stickBro, COLLISION_BOX);
 
     WeatherMachine* wm = weather_machine_init(100000, 1, 1, 1, 100000, screenBox, environmentCollision);
@@ -111,10 +118,10 @@ int main(int argc, char* argv[])
         //render
         render_texture_background(&background, window.renderer, &window.camera, LEVEL_WIDTH, LEVEL_HEIGTH);
         draw_collision_environment(environmentCollision, &window.camera, window.renderer);
-        box_texture_render(&stickBro, window.renderer, &window.camera, NULL);
+        box_texture_render(&stickBro, window.renderer, &window.camera);
         weather_machine_render(wm, window.renderer, screenBox, &window.camera, deltaTime);
         floating_text_controller_render(ftc, window.renderer);
-        circle_texture_render(&dot, window.renderer, &window.camera, NULL);
+        circle_texture_render(&dot, window.renderer, &window.camera);
 
         SDL_RenderPresent(window.renderer);
     }
@@ -128,6 +135,8 @@ int main(int argc, char* argv[])
     free_texture(&background);
     free_texture(&stickBroTexture);
     free_texture(&dotTexture);
+    free_texture(&rectTexture);
+    free_texture(&circleTexture);
 
     free_TTF(font);
     free_SDL2(&window);

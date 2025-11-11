@@ -231,6 +231,7 @@ typedef struct
     float velX, velY;
     short maxVelX, maxVelY;
     Texture* texture;
+    uint8_t clipIndex; //for animation frames 0 for no animation
 } Circle;
 
 
@@ -242,7 +243,7 @@ Circle circle_init(int x, int y, int radius, int maxVelX, int maxVelY, Texture* 
 void circle_move_free(Circle* circle, CollisionObjectList* colList, float deltaTime, enum COLLISION_CONTACT_EFFECT collEffect);
 
 //Rendering circle texture
-void circle_texture_render(Circle* circle, SDL_Renderer* renderer, SDL_FRect* camera, SDL_Rect* clip);
+void circle_texture_render(Circle* circle, SDL_Renderer* renderer, SDL_FRect* camera);
 
 //quick functions for rendering circle shapes
 //draw filled circle
@@ -263,6 +264,7 @@ typedef struct
     float velX, velY;
     short maxVelX, maxVelY; //maxY with platformer is changed max jump height and terminal velocity
     Texture* texture;
+    uint8_t clipIndex; //for animation frames 0 for no animation
 } Box;
 
 //init box
@@ -280,7 +282,7 @@ void box_move_free(Box* box, CollisionObjectList* colList, float deltaTime, enum
 void box_move_platformer(Box* box, CollisionObjectList* colList, float deltaTime, enum COLLISION_CONTACT_EFFECT collEffect);
 
 //rendering for textured Box (clip can be NULL is texture is the entire sprit)
-void box_texture_render(Box* box, SDL_Renderer* renderer, SDL_FRect* camera, SDL_Rect* clip);
+void box_texture_render(Box* box, SDL_Renderer* renderer, SDL_FRect* camera);
 
 //quick rendering for basic Box shapes
 void box_outlined_draw(Box* box, SDL_Renderer* renderer, SDL_Color color);
