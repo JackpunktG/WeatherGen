@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
         //render
         render_texture_background(&background, window.renderer, &window.camera, LEVEL_WIDTH, LEVEL_HEIGTH);
         draw_collision_environment(environmentCollision, &window.camera, window.renderer);
-        render_texture_camera(&SnowCount, window.renderer, &window.camera, 250, LEVEL_HEIGTH - 50);
+        render_texture_camera(&SnowCount, window.renderer, &window.camera, 250, LEVEL_HEIGTH - 55);
         box_texture_render(&stickBro, window.renderer, &window.camera);
         weather_machine_render(wm, window.renderer, screenBox, &window.camera, deltaTime);
         circle_texture_render(&dot, window.renderer, &window.camera);
