@@ -9,6 +9,13 @@
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
+uint32_t snow_stop(uint32_t interval, void* param)
+{
+    WeatherMachine* wm = (WeatherMachine*)param;
+    wm->snowMachine->spwanRate = 0;
+    return 0;
+}
+
 int main(int argc, char* argv[])
 {
     WindowConstSize window;
@@ -70,6 +77,8 @@ int main(int argc, char* argv[])
 
     WeatherMachine* wm = weather_machine_init(100000, 1, 1, 1, 100000, screenBox, environmentCollision);
     if (!wm) return 1;
+    wm->snowMachine->spwanRate = 5000;
+    SDL_TimerID snowStop = SDL_AddTimer(5000, snow_stop, wm);
 
     bool running = true;
     SDL_Event e;
@@ -124,14 +133,17 @@ int main(int argc, char* argv[])
         //render
         render_texture_background(&background, window.renderer, &window.camera, LEVEL_WIDTH, LEVEL_HEIGTH);
         draw_collision_environment(environmentCollision, &window.camera, window.renderer);
+        render_texture_camera(&SnowCount, window.renderer, &window.camera, 250, LEVEL_HEIGTH - 50);
         box_texture_render(&stickBro, window.renderer, &window.camera);
         weather_machine_render(wm, window.renderer, screenBox, &window.camera, deltaTime);
-        floating_text_controller_render(ftc, window.renderer);
         circle_texture_render(&dot, window.renderer, &window.camera);
-        render_texture_camera(&SnowCount, window.renderer, &window.camera, 10, 100);
+        floating_text_controller_render(ftc, window.renderer);
 
         SDL_RenderPresent(window.renderer);
     }
+
+    SDL_RemoveTimer(snowStop);
+
     free_collision_object_list(environmentCollision);
     free(screenBox);
     free(box1);
