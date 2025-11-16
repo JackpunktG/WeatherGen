@@ -33,7 +33,7 @@ Adjustment controls
 
 ![lightning1](images/lightning1.gif)
 
-![lightning2](images/lightning2.gif)
+![lightning2](images/lightning3.gif)
 
 
 #### Snow 
@@ -53,5 +53,15 @@ Adjustment controls
 
 
 ### Installation
+
+Either clone the reop for Just download the lib's and include them in your project.
+
+direct lib download link
+```bash
+curl -L https://api.github.com/JackpunktG/WeatherGen/main -o repo.zip \
+ unzip reop.zip \ 
+mv WeatherGen-main/lib/ lib/ \
+rm -r WeatherGen-main/ && rm reop.zip
+``````
 
 
