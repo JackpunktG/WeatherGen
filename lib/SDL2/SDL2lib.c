@@ -770,6 +770,7 @@ void draw_filled_triangle(SDL_Renderer* renderer, SDL_Point p1, SDL_Point p2, SD
 
 //Collision detection functions
 //*************************************************************
+
 int distanced_squared(int x1, int y1, int x2, int y2) //for speed optimization rather than using sqrt
 {
     int dx = x2 - x1;

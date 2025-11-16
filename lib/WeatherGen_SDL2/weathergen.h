@@ -3,10 +3,13 @@
 
 #ifndef WEATHERGEN_H
 #define WEATHERGEN_H
-#include "../SDL2/SDL2lib.h"
 #include "../arena_memory/arena_memory.h"
-
 #include <SDL2/SDL.h>
+
+//Complete SDL2 lib
+#include "../SDL2/SDL2lib.h"
+//Collision Objects list for environment collision
+//#include "../CollisionObjectList_SDL2/collisionObjectList_SDL2.h"
 
 
 
@@ -153,7 +156,8 @@ void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, Bounding
 void weather_machine_destroy(WeatherMachine* wm);
 
 /* Implement Own controling unit as needed */
+//delete or comment out
 #include "../../src/objects/floatingtext.h"
-void weather_machine_controls(WeatherMachine* wm, FloatingTextController* c, WindowConstSize* window, SDL_Event* e);
+//void weather_machine_controls(WeatherMachine* wm, FloatingTextController* c, WindowConstSize* window, SDL_Event* e);
 #endif
 

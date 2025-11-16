@@ -58,10 +58,20 @@ Either clone the reop for Just download the lib's and include them in your proje
 
 direct lib download link
 ```bash
-curl -L https://api.github.com/JackpunktG/WeatherGen/main -o repo.zip \
- unzip reop.zip \ 
-mv WeatherGen-main/lib/ lib/ \
-rm -r WeatherGen-main/ && rm reop.zip
+curl -L https://github.com/JackpunktG/WeatherGen/archive/refs/heads/main.zip -o repo.zip
+unzip repo.zip
+mv WeatherGen-main/lib/ lib/
+rm -r WeatherGen-main/ repo.zip
 ``````
+
+Requirements for the WeatherGen lib is the SDL2 lib, arena_memory lib and the Collision Object list in SDL2. So if you want to use it with your own SDL2 implementations just copy use the CollisionObjectList_SDL2 lib
+and combine it with your own SDL2 project and change around the commentted out #includes. I've also include my SDL2 lib implementation by defualt for ease of use.
+
+using the Collision object list is simple, just create a CollisionObjectList and add any objects you want the weather to interact with. Have a look in the header file for more info on what types of objects you can add.
+
+### Usage
+To use the WeatherGen lib in your project just include the header file and link the WeatherGen lib to your project. 
+
+```c
 
 

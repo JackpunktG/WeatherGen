@@ -828,6 +828,7 @@ bool laying_snow_collision(SnowPartical* s, CollisionObjectList* colList, float 
         }
         else if (colList->type[i] == COLLISION_BOX)
         {
+            //for use in own lib need to convert Box to Rect
             Box *b = (Box *)colList->obj[i];
             if (s->x > b->x && s->x < b->x + b->rect.w && s->y > b->rect.y && s->y < b->rect.h + b->y)
             {
@@ -1108,6 +1109,9 @@ WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t maxStrands, ui
     return wm;
 }
 
+
+
+/* Delete / comment out when being implemented for your own project */
 void weather_machine_controls(WeatherMachine* wm, FloatingTextController* c, WindowConstSize* window, SDL_Event* e)
 {
     if(e->type != SDL_KEYDOWN || !wm)
