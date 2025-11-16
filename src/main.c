@@ -1,7 +1,6 @@
 #include "../lib/SDL2/SDL2lib.h"
 #include "objects/floatingtext.h"
-#include "objects/rain.h"
-
+#include "../lib/WeatherGen_SDL2/weathergen.h"
 #include <stdbool.h>
 
 #define LEVEL_WIDTH 2560

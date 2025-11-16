@@ -1,4 +1,4 @@
 *.o
 valgrind*
 *.xcf
-RainGen
+WeatherGen_Demo

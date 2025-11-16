@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Jack.B - jack.goldsbrough@outlook.com
+// SPDX-License-Identifier: MIT
+
 #ifndef SDL2LIB_H
 #define SDL2LIB_H
 #include "../arena_memory/arena_memory.h"

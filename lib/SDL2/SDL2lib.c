@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Jack.B - jack.goldsbrough@outlook.com
+// SPDX-License-Identifier: MIT
+
 #include "SDL2lib.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>

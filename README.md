@@ -1,28 +1,57 @@
-# WeatherGen
-
--> STATUS: WORKING 
-
-The next project I wanted to give a bit of graphic's a go. With C I decided on the SDL2 API. I've be busy learning the in's and out's.
-Plus through it would be great to give Arena sytle memory management a go. So went ahead and sketched out both libs.
-
-Therefor this is a little project that combines the two libs I wrote. 
+# WeatherGen v1.0
 
 
-First up was rain, but now that im thinking about it. perhaps building a complete weather system would be fun to be able to impletment in later projects.
-More research needed :)
+The next project I wanted to give a bit of graphic's a go. I decided on the learning the SDL2 API, whilst building a C lib for it. During development I found the use of Arena Style memory
+management to be fantasic and to show it off I built a little weather generator. Easily protatble to your projects!! Never has boring weather again :)
 
-### Lightning Generator - draft
+I built this little demo to show off the WeatherGen, download the Project, run the make file, and give it a go!
 
-First run of the lightning generator alorigthum -> needs some TLC and fine tuning, but we're in the right ball park.
+### Weather Effects
+
+*Excuse the janky gifs, I promise the game play was smooth*
+
+#### Rain
+
+Spwans rain particals inside a Weather Box that fall to the ground with increasing speed as the drop size increases in relation to drops per second. Once in contact with collision, play out a little splash death animation
+
+Adjustment controls
+- Drop count per second
+- Wind
+
+![rain1](images/rain1.gif)
+
+![rain2](images/rain2.gif)
+
+#### Lightning
+
+Spwans evolving Lightning Strikes within a Weather Box, evolves with relation intensity and strand count settings. Lights up any Rain particals in the scene when strike occurs
+
+Adjustment controls
+- Serverity (increaing the chance of strike and strand intensity)
+- Strand Count (caps the maximum number of strands to spwan per strike)
+- Delay (adds timed cooldown between strike coming back online)
+
+![lightning1](images/lightning1.gif)
+
+![lightning2](images/lightning2.gif)
 
 
-### Rain Effect - draft 
+#### Snow 
 
-![light](images/light.png)
-![medium](images/med.png)
-![heavy](images/heavy.png)
-![vHeavy](images/vHeavy.png)
+Spwans snow particals inside a Weather Box that fall down with increasing speed and size in relation to the per second spwan count. Once in contact with collision they build up a snow pile, as long as there is room in the laying snow count (1/4 of max spwan rate). 
+When another collision object comes into collision with teh snow pile they had a death animation taking into account which direction they are approached from.
 
-to add 
-- work on wind effect
-- sound effects
+Adjustment controls
+- Snow count per second
+- Wind
+
+![snow2](images/snow1.gif)
+
+![snow](images/snow3.gif)
+
+![snow1](images/snow2.gif)
+
+
+### Installation
+
+
