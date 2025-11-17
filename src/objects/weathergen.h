@@ -1,16 +1,14 @@
 // SPDX-FileCopyrightText: 2025 Jack.B - jack.goldsbrough@outlook.com
 // SPDX-License-Identifier: MIT
 
+/* USE THE LIB in LIB FOLDER - THIS IS HERE FOR THE PROJECT ONLY */
+
 #ifndef WEATHERGEN_H
 #define WEATHERGEN_H
-#include "../arena_memory/arena_memory.h"
+#include "../../lib/arena_memory/arena_memory.h"
+#include "../../lib/SDL2/SDL2lib.h"
+#include "floatingtext.h"
 #include <SDL2/SDL.h>
-
-//Complete SDL2 lib
-#include "../SDL2/SDL2lib.h"
-//Collision Objects list for environment collision
-// Need to redefine BOX type for snow collision detection
-//#include "../CollisionObjectList_SDL2/collisionObjectList_SDL2.h"
 
 
 
@@ -156,5 +154,6 @@ WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t maxStrands, ui
 void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, BoundingBox* weatherBox, SDL_FRect* camera, float deltaTime);
 void weather_machine_destroy(WeatherMachine* wm);
 
+void weather_machine_controls(WeatherMachine* wm, FloatingTextController* c, WindowConstSize* window, SDL_Event* e);
 #endif
 

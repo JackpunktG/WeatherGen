@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2025 Jack.B - jack.goldsbrough@outlook.com
 // SPDX-License-Identifier: MIT
 
+/* USE THE LIB in LIB FOLDER - THIS IS HERE FOR THE PROJECT ONLY */
+
 #include "weathergen.h"
 #include <assert.h>
 
@@ -993,6 +995,64 @@ void snow_render(SnowMachine* sm, BoundingBox* weatherBox, SDL_FRect* camera, SD
     }
 }
 
+/*  Made no difference so no need to have a separate function for bright snow
+    Kept just for incase we want to tweak it later but not worth the processing power
+void lightning_snow_render(SnowMachine* sm, BoundingBox* weatherBox, SDL_FRect* camera, SDL_Renderer* renderer)
+{
+    if (!sm || !renderer)
+        return;
+
+    //printf("Landed Snow Particles Active: %u\n", sm->snowLanded);
+
+    for (size_t i = 0; i < sm->count; i++)
+    {
+        SnowPartical* s = sm->snow[i];
+        SDL_Color brightColor = {255, 255, 255, s->color.a};
+        if (!s->snowDeath)
+        {
+            SDL_FRect rect = {s->x - camera->x, s->y - camera->y, s->size, s->size * 3};
+            draw_filled_rect(renderer, NULL, &rect, brightColor);
+        }
+        else if (s->landed && s->vY != 0)
+        {
+            if (!s->snowDeath) assert(s->y < weatherBox->y && s->y > weatherBox->y + weatherBox->height && s->x < weatherBox->x+weatherBox->width && s->x > weatherBox->x); //make sure snow does not lay outside of the weather box
+            for (int j = 0; j < s->size; j++)
+                draw_point(renderer, s->x + (s->size * 3) + 1 + (rand() % (j + 1)) - camera->x, s->y - (s->size + (rand() % s->size)) - camera->y, brightColor);
+
+        }
+    }
+}
+
+void lightning_fade_snow_render(SnowMachine* sm, uint8_t fadeLevel, BoundingBox* weatherBox, SDL_FRect* camera, SDL_Renderer* renderer)
+{
+    if (!sm || !renderer)
+        return;
+
+    //printf("Landed Snow Particles Active: %u\n", sm->snowLanded);
+
+    for (size_t i = 0; i < sm->count; i++)
+    {
+        SnowPartical* s = sm->snow[i];
+        uint8_t r = (255 - fadeLevel > s->color.r) ? 255 - fadeLevel : s->color.r;
+        uint8_t g = (255 - fadeLevel > s->color.g) ? 255 - fadeLevel : s->color.g;
+        uint8_t b = (255 - fadeLevel > s->color.b) ? 255 - fadeLevel : s->color.b;
+
+        SDL_Color brightColor = {r, g, b, s->color.a};
+        if (!s->snowDeath)
+        {
+            SDL_FRect rect = {s->x - camera->x, s->y - camera->y, s->size, s->size * 3};
+            draw_filled_rect(renderer, NULL, &rect, brightColor);
+        }
+        else if (s->landed && s->vY != 0)
+        {
+            if (!s->snowDeath) assert(s->y < weatherBox->y && s->y > weatherBox->y + weatherBox->height && s->x < weatherBox->x+weatherBox->width && s->x > weatherBox->x); //make sure snow does not lay outside of the weather box
+            for (int j = 0; j < s->size; j++)
+                draw_point(renderer, s->x + (s->size * 3) + 1 + (rand() % (j + 1)) - camera->x, s->y - (s->size + (rand() % s->size)) - camera->y, brightColor);
+
+        }
+    }
+}*/
+
 void snowmachine_destroy(SnowMachine* sm)
 {
     if (!sm)
@@ -1051,6 +1111,142 @@ WeatherMachine* weather_machine_init(size_t rainMaxCount, uint8_t maxStrands, ui
     return wm;
 }
 
+
+
+/* Delete / comment out when being implemented for your own project */
+void weather_machine_controls(WeatherMachine* wm, FloatingTextController* c, WindowConstSize* window, SDL_Event* e)
+{
+    if(e->type != SDL_KEYDOWN || !wm)
+        return;
+
+    switch(e->key.keysym.sym)
+    {
+    case SDLK_l:
+        if (!wm->lightningMachine->active)
+        {
+            wm->lightningMachine->active = true;
+            floating_text_add(c, window, "LIGHTNING ACTIVATED", COLOR[BLACK]);
+        }
+        else
+        {
+            lightning_machine_reset(wm->lightningMachine);
+            wm->lightningMachine->active = false;
+            floating_text_add(c, window, "LIGHTNING DEACTIVATED", COLOR[BLACK]);
+        }
+        break;
+    case SDLK_k:
+    {
+        wm->lightningMachine->serverity += 1;
+        if (wm->lightningMachine->serverity > 10)
+            wm->lightningMachine->serverity = 1;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "LIGHTNING SERVERITY SET TO %d", wm->lightningMachine->serverity);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_j:
+    {
+        uint8_t tmpCount = wm->lightningMachine->strandMaxCount;
+        tmpCount = tmpCount > 80 ? 1 : tmpCount + 1;
+        uint32_t tmpFreq = wm->lightningMachine->frequence;
+        uint8_t tmpServ = wm->lightningMachine->serverity;
+        lightning_machine_destroy(wm->lightningMachine);
+        wm->lightningMachine = NULL;
+        wm->lightningMachine = lightning_machine_init(tmpCount, tmpFreq, tmpServ);
+        wm->lightningMachine->active = true;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "LIGHTNING STRAND COUNT SET TO %d", tmpCount);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_h:
+    {
+        wm->lightningMachine->frequence += 1;
+        if (wm->lightningMachine->frequence > 100)
+            wm->lightningMachine->frequence = 1;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "LIGHTNING FREQUENCE SET TO %d", wm->lightningMachine->frequence);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_p:
+        wm->rainMachine->spwanRate = 0;
+        floating_text_add(c, window, "RAIN STOPPED", COLOR[BLACK]);
+        break;
+    case SDLK_o:
+    {
+        wm->rainMachine->spwanRate += 30;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "RAIN INCREASED TO %d DROPLETS PER SECOND", wm->rainMachine->spwanRate);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_i:
+    {
+        wm->rainMachine->spwanRate -= 30;
+        if (wm->rainMachine->spwanRate > UINT32_MAX - 31)
+            wm->rainMachine->spwanRate = 0;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "RAIN DECREASED TO %d DROPLETS PER SECOND", wm->rainMachine->spwanRate);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_u:
+    {
+        wm->rainMachine->spwanRate = wm->rainMachine->spwanRate == 0 ? UINT32_MAX : 0;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "RAIN PULSE MODE ");
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_m:
+        wm->snowMachine->spwanRate = 0;
+        floating_text_add(c, window, "SNOW STOPPED", COLOR[BLACK]);
+        break;
+    case SDLK_n:
+    {
+        wm->snowMachine->spwanRate += 30;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "SNOW INCREASED TO %d PARTICLES PER SECOND", wm->snowMachine->spwanRate);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_b:
+    {
+        wm->snowMachine->spwanRate -= 30;
+        if (wm->snowMachine->spwanRate > UINT32_MAX - 31)
+            wm->snowMachine->spwanRate = 0;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "SNOW DECREASED TO %d PARTICLES PER SECOND", wm->snowMachine->spwanRate);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_v:
+        wm->snowMachine->spwanRate = wm->snowMachine->spwanRate == 0 ? UINT32_MAX : 0;
+        floating_text_add(c, window, "SNOW PULSE MODE ", COLOR[BLACK]);
+        break;
+    case SDLK_9:
+    {
+        wm->wind -= 20;
+        if (wm->wind < -1000)
+            wm->wind = 0;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "WIND SET TO %d", wm->wind);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    case SDLK_0:
+    {
+        wm->wind += 20;
+        if (wm->wind > 1000)
+            wm->wind = 0;
+        char tmpStr[64];
+        snprintf(tmpStr, sizeof(tmpStr), "WIND SET TO %d", wm->wind);
+        floating_text_add(c, window, tmpStr, COLOR[BLACK]);
+        break;
+    }
+    }
+}
 
 void weather_machine_render(WeatherMachine* wm, SDL_Renderer* renderer, BoundingBox* weatherBox, SDL_FRect* camera, float deltaTime)
 {
