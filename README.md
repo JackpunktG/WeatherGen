@@ -108,7 +108,7 @@ To adjust the lightning strands during runtime
 ```c
 lightning_machine_destroy(wm->lightningMachine);
 wm->lightningMachine = NULL;
-wm->lightningMachine = lightning_machine_init(tmpCount, tmpFreq, tmpServ);
+wm->lightningMachine = lightning_machine_init(newCount, frequence, Serverity);
 wm->lightningMachine->active = true;
 ```
 
