@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 Jack.B - jack.goldsbrough@outlook.com
 // SPDX-License-Identifier: MIT
 
-/* USE THE LIB in LIB FOLDER - THIS IS HERE FOR THE PROJECT ONLY */
+/* USE THE LIB in LIB FOLDER - THIS IS HERE FOR THE DEMO PROJECT ONLY */
 
 #ifndef WEATHERGEN_H
 #define WEATHERGEN_H

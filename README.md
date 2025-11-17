@@ -67,11 +67,60 @@ rm -r WeatherGen-main/ repo.zip
 Requirements for the WeatherGen lib is the SDL2 lib, arena_memory lib and the Collision Object list in SDL2. So if you want to use it with your own SDL2 implementations just copy use the CollisionObjectList_SDL2 lib
 and combine it with your own SDL2 project and change around the commentted out #includes. I've also include my SDL2 lib implementation by defualt for ease of use.
 
-using the Collision object list is simple, just create a CollisionObjectList and add any objects you want the weather to interact with. Have a look in the header file for more info on what types of objects you can add.
+Using the Collision object list is simple, just create a CollisionObjectList and add any objects you want the weather to interact with. Have a look in the header file for more info on what types of objects you can add.
+You will need to redefine my Box type as that is the main Charater that will interact with the snow, but just treat it as an SDL_Rect.
+
 
 ### Usage
 To use the WeatherGen lib in your project just include the header file and link the WeatherGen lib to your project. 
 
+Set up your collision objects like so:
 ```c
+CollisionObjectList* environmentCollision = collision_object_list_init();
+BoundingBox* screenBox = bounding_box_init_screen(LEVEL_WIDTH, LEVEL_HEIGTH, environmentCollision);
+CollisionRect* box2 = collision_rect_init(800, 775, 50, 300, &rectTexture, environmentCollision);
+CollisionCircle* circle1 = collision_circle_init(810, 500, 35, &circleTexture, environmentCollision);
+```
+The screen box is important as it defines the bounds of the weather effects.
+
+Then init the WeatherMachine with your desired settings:
+```c
+WeatherMachine* wm = weather_machine_init(100000, 3, 1, 5, 100000, screenBox, environmentCollision);
+````
+
+Then in your game loop just update and render the weather machine:
+```c
+rain_spwan(wm->rainMachine, screenBox, deltaTime);
+rain_update(wm->rainMachine, screenBox, deltaTime, wm->wind, environmentCollision);
+
+lightning_machine_update(wm->lightningMachine, screenBox, deltaTime);
+lightning_strand_grow(wm->lightningMachine, screenBox, deltaTime);
+
+snow_spwan(wm->snowMachine, screenBox, deltaTime);
+snow_update(wm->snowMachine, screenBox, deltaTime, wm->wind, environmentCollision);
+
+weather_machine_render(wm, window.renderer, screenBox, &window.camera, deltaTime);
+```
+
+All the weather setting for Snow and Rain are accessable and can be changed except for the max counts after runtime.
+For the lightning att the setting expect for maxStrand are easily accessable.
+To adjust the lightning strands during runtime
+```c
+lightning_machine_destroy(wm->lightningMachine);
+wm->lightningMachine = NULL;
+wm->lightningMachine = lightning_machine_init(tmpCount, tmpFreq, tmpServ);
+wm->lightningMachine->active = true;
+```
+
+Lastly free the weather machine when your done with it:
+```c
+weather_machine_free(wm);
+```
 
 
+
+Have fun :)
+
+
+### License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
