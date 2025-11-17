@@ -5,6 +5,10 @@ The next project I wanted to give a bit of graphic's a go. I decided on the lear
 management to be fantasic and to show it off I built a little weather generator. Easily protatble to your projects!! Never has boring weather again :)
 
 I built this little demo to show off the WeatherGen, download the Project, run the make file, and give it a go!
+Requirements are SDL2 libs installed on your system.
+
+```bash
+
 
 ### Weather Effects
 
