@@ -8,6 +8,14 @@
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
+const int TARGET_FPS = 60;
+const int SCREEN_TICKS_PER_FRAME = 1000 / TARGET_FPS;
+
+static double perf_frequency_to_seconds(Uint64 delta, Uint64 perf_freq)
+{
+    return (double)delta / (double)perf_freq;
+}
+
 uint32_t snow_stop(uint32_t interval, void* param)
 {
     WeatherMachine* wm = (WeatherMachine*)param;
@@ -18,7 +26,7 @@ uint32_t snow_stop(uint32_t interval, void* param)
 int main(int argc, char* argv[])
 {
     WindowConstSize window;
-    init_SDL2_basic_vsync(&window, "RAINGEN", WINDOW_WIDTH, WINDOW_HEIGHT);
+    init_SDL2_basic(&window, "RAINGEN", WINDOW_WIDTH, WINDOW_HEIGHT);
     if (!init_TTF())
     {
         printf(" unable to init TTF!");
@@ -48,7 +56,6 @@ int main(int argc, char* argv[])
     Texture circleTexture;
     if(!load_texture_from_file_colourKey(&circleTexture, "src/assets/circle_texture.png", window.renderer, COLOR[CYAN]))
         return 1;
-
 
     FloatingTextController* ftc = floating_text_controller_init(50, font);
 
@@ -82,8 +89,6 @@ int main(int argc, char* argv[])
     bool running = true;
     SDL_Event e;
     uint32_t lastTime = SDL_GetTicks();
-    uint32_t x = 30;
-    int w = 0;
     while(running)
     {
         // Handle events
@@ -102,11 +107,12 @@ int main(int argc, char* argv[])
             motion_handle_event_wasd(&stickBro, OBJ_BOX, &e, MOTION_PLATFORMER);
             motion_handle_event_arrow_keys(&dot, OBJ_CIRCLE, &e, MOTION_FREE);
         }
-        clear_screen_with_color(window.renderer, COLOR[GRAY]);
-        Uint32 currentTime = SDL_GetTicks();
-        float deltaTime = (currentTime - lastTime) / 1000.0f;
-        lastTime = currentTime;
+        //deltaTime Calculation
+        Uint32 currentTimeDelta = SDL_GetTicks();
+        float deltaTime = (currentTimeDelta - lastTime) / 1000.0f;
+        lastTime = currentTimeDelta;
 
+        //Weather Update logic
         floating_text_controller_update(ftc, deltaTime);
 
         rain_spwan(wm->rainMachine, screenBox, deltaTime);
@@ -130,6 +136,7 @@ int main(int argc, char* argv[])
         load_texture_from_rendered_text(&SnowCount, SnowCountBuff, font, COLOR[WHITE],window.renderer);
 
         //render
+        clear_screen_with_color(window.renderer, COLOR[GRAY]);
         render_texture_background(&background, window.renderer, &window.camera, LEVEL_WIDTH, LEVEL_HEIGTH);
         draw_collision_environment(environmentCollision, &window.camera, window.renderer);
         render_texture_camera(&SnowCount, window.renderer, &window.camera, 250, LEVEL_HEIGTH - 55);
@@ -137,6 +144,7 @@ int main(int argc, char* argv[])
         weather_machine_render(wm, window.renderer, screenBox, &window.camera, deltaTime);
         circle_texture_render(&dot, window.renderer, &window.camera);
         floating_text_controller_render(ftc, window.renderer);
+
 
         SDL_RenderPresent(window.renderer);
     }

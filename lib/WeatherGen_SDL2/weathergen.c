@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 #include "weathergen.h"
-#include <assert.h>
 
 #include <limits.h>
 #include <math.h>
@@ -632,8 +631,6 @@ void lightning_render(LightningMachine* lm, BoundingBox* wB, SDL_FRect* camera, 
 
         for (int k = 1; k < ls->count; ++k)
         {
-            assert(ls->lightningPoints[k]->x > -100 && ls->lightningPoints[k]->y >= 0 && ls->lightningPoints[k -1]->x > -100 && ls->lightningPoints[k - 1]->y >= 0); //sanity check for lightning points (-100 to allow for off screen points if lightning is generated close to edge)
-            assert(ls->lightningPoints[k]->x < 10000 && ls->lightningPoints[k]->y < 10000 && ls->lightningPoints[k -1]->x < 10000 && ls->lightningPoints[k - 1]->y < 10000); //sanity check for lightning points to see if and garbage data is being used
             if (ls->intensity > 5)
             {
                 draw_line_float(renderer, ls->lightningPoints[k - 1]->x - camera->x, ls->lightningPoints[k - 1]->y - camera->y, ls->lightningPoints[k]->x - camera->x, ls->lightningPoints[k]->y - camera->y, COLOR[PURPLE]);
@@ -985,7 +982,6 @@ void snow_render(SnowMachine* sm, BoundingBox* weatherBox, SDL_FRect* camera, SD
         }
         else if (s->landed && s->vY != 0)
         {
-            if (!s->snowDeath) assert(s->y < weatherBox->y && s->y > weatherBox->y + weatherBox->height && s->x < weatherBox->x+weatherBox->width && s->x > weatherBox->x); //make sure snow does not lay outside of the weather box
             for (int j = 0; j < s->size; j++)
                 draw_point(renderer, s->x + (s->size * 3) + 1 + (rand() % (j + 1)) - camera->x, s->y - (s->size + (rand() % s->size)) - camera->y, s->color);
 
