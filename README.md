@@ -7,7 +7,7 @@ management to be fantasic and to show it off I built a little weather generator.
 I built this little demo to show off the WeatherGen, download the Project, run the make file, and give it a go!
 Requirements are SDL2 libs installed on your system.
 
-Standalone demo for Linus and Windows is now available to download from the Releases page!!
+-> Standalone demo for Linus and Windows is now available to download from the Releases page!! <-
 
 ### Weather Effects
 
