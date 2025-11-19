@@ -3,3 +3,5 @@ valgrind*
 *.xcf
 WeatherGen_Demo
 *AppImage*
+win-obj/
+mingw-libs/

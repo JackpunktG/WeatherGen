@@ -52,7 +52,7 @@ create-icon:
 	fi
 
 # Portable AppImage build with custom icon
-appimage: $(TARGET) create-icon
+linux: $(TARGET) create-icon
 	@echo "Creating portable AppImage..."
 	@mkdir -p AppDir/usr/bin AppDir/usr/share/applications
 	@cp $(TARGET) AppDir/usr/bin/
@@ -82,31 +82,59 @@ appimage: $(TARGET) create-icon
 	@ls -la *.AppImage 2>/dev/null
 	@echo "This single file will run on any Linux distribution!"
 
-# Setup for Windows cross-compilation
-setup-mingw:
-	@echo "Setting up SDL2 for Windows cross-compilation..."
-	@mkdir -p mingw-libs/include mingw-libs/lib
-	@echo ""
-	@echo "Download these SDL2 development libraries for Windows (mingw):"
-	@echo "1. SDL2: https://github.com/libsdl-org/SDL/releases (get SDL2-devel-x.x.x-mingw.tar.gz)"
-	@echo "2. SDL2_image: https://github.com/libsdl-org/SDL_image/releases"
-	@echo "3. SDL2_ttf: https://github.com/libsdl-org/SDL_ttf/releases"
-	@echo "4. SDL2_mixer: https://github.com/libsdl-org/SDL_mixer/releases"
-	@echo ""
-	@echo "Extract all to mingw-libs/ directory, then run 'make windows'"
-
-# Windows static build
+# Windows build with proper DLL bundling
 windows: win-objs $(WIN_OBJS)
 	@if [ ! -d "mingw-libs/include" ]; then \
 		echo "Error: mingw-libs not found. Run 'make setup-mingw' first and download SDL2 libraries."; \
 		exit 1; \
 	fi
-	$(MINGW_CC) $(WIN_OBJS) -o $(TARGET)_windows_static.exe -static \
+	@echo "Building Windows executable..."
+	$(MINGW_CC) $(WIN_OBJS) -o $(TARGET)_windows.exe \
+		-static-libgcc -static-libstdc++ \
 		$(WIN_LIBPATH) \
+		-Wl,--subsystem,console \
 		-lmingw32 -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer \
-		-lfreetype -lpng -ljpeg -ltiff -lwebp -lz \
-		-lm -ldinput8 -ldxguid -luser32 -lgdi32 -lwinmm -limm32 \
+		-lm -luser32 -lgdi32 -lwinmm -limm32 \
 		-lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+	@echo "Creating complete Windows distribution package..."
+	@rm -rf windows-dist
+	@mkdir -p windows-dist
+	@cp $(TARGET)_windows.exe windows-dist/
+	@cp mingw-libs/bin/*.dll windows-dist/
+	@if [ -d "src/assets" ]; then cp -r src/assets windows-dist/; fi
+	@if [ -d "images" ]; then cp -r images windows-dist/; fi
+	@echo "# WeatherGen Demo - Windows Distribution" > windows-dist/README.txt
+	@echo "" >> windows-dist/README.txt
+	@echo "To run the weather generator demo:" >> windows-dist/README.txt
+	@echo "1. Double-click WeatherGen_Demo_windows.exe" >> windows-dist/README.txt
+	@echo "2. Or run from command line: WeatherGen_Demo_windows.exe" >> windows-dist/README.txt
+	@echo "" >> windows-dist/README.txt
+	@echo "All required DLLs are included in this folder." >> windows-dist/README.txt
+	@echo "No additional software installation required!" >> windows-dist/README.txt
+	@echo "" >> windows-dist/README.txt
+	@date >> windows-dist/README.txt
+	@echo ""
+	@echo "🎉 Complete Windows distribution created!"
+	@echo "📁 Location: windows-dist/"
+	@echo "📄 Contents:"
+	@ls -la windows-dist/
+	@echo ""
+	@echo "✅ Ready to distribute: Zip the 'windows-dist' folder"
+	@echo "🎯 Users can extract and run without installing anything!"
+
+# Create release packages for distribution
+release: appimage windows
+	@echo "Creating release packages..."
+	@mkdir -p releases
+	@cp *.AppImage releases/ 2>/dev/null || true
+	@if [ -d windows-dist ]; then \
+		cd windows-dist && zip -r ../releases/WeatherGen_Demo_Windows_$(shell date +%Y%m%d).zip * && cd ..; \
+	fi
+	@echo ""
+	@echo "🎉 Release packages created in releases/ directory:"
+	@ls -la releases/
+	@echo ""
+	@echo "Ready for distribution! 🚀"
 
 # Create win-objs directory
 win-objs:
@@ -132,6 +160,20 @@ win-objs/arena_memory.o: lib/arena_memory/arena_memory.c | win-objs
 win-objs/SDL2lib.o: lib/SDL2/SDL2lib.c | win-objs
 	$(MINGW_CC) $(CFLAGS) $(WIN_INCLUDES) -c $< -o $@
 
+# Check Windows executable dependencies
+check-windows:
+	@echo "Checking for Windows executables..."
+	@if [ -f $(TARGET)_windows.exe ]; then \
+		echo "Windows executable found. Checking dependencies:"; \
+		echo "DLL dependencies:"; \
+		x86_64-w64-mingw32-objdump -p $(TARGET)_windows.exe | grep "DLL Name" | head -10; \
+		echo ""; \
+		echo "✅ All SDL2 DLLs should be bundled in windows-dist/"; \
+		echo "✅ Windows system DLLs (KERNEL32, msvcrt, SHELL32) are built into Windows"; \
+	else \
+		echo "No Windows executable found. Run 'make windows' first."; \
+	fi
+
 # Clean only build artifacts (preserves executables)
 clean:
 	rm -f $(OBJS)
@@ -139,23 +181,7 @@ clean:
 
 # Clean everything including executables and tools
 clean-all:
-	rm -f $(OBJS) $(TARGET) $(TARGET)_windows_static.exe
-	rm -rf win-objs AppDir *.AppImage mingw-libs linuxdeploy-x86_64.AppImage weathergen_icon.png
+	rm -f $(OBJS) $(TARGET) $(TARGET)_windows*.exe
+	rm -rf win-objs AppDir *.AppImage mingw-libs linuxdeploy-x86_64.AppImage windows-dist releases
 
-# Show what files would be cleaned
-show-clean:
-	@echo "Files that 'make clean' would remove:"
-	@echo "  - Object files: $(OBJS)"
-	@echo "  - Build directory: AppDir/"
-	@echo "  - Windows build directory: win-objs/"
-	@echo ""
-	@echo "Files that 'make clean-all' would remove:"
-	@echo "  - Everything above PLUS:"
-	@echo "  - $(TARGET)"
-	@echo "  - $(TARGET)_windows_static.exe" 
-	@echo "  - *.AppImage"
-	@echo "  - mingw-libs/"
-	@echo "  - linuxdeploy-x86_64.AppImage"
-	@echo "  - weathergen_icon.png"
-
-.PHONY: all appimage windows setup-mingw create-icon clean clean-all show-clean win-objs
+.PHONY: all appimage windows release clean clean-all check-windows win-objs create-icon

@@ -26,7 +26,7 @@ uint32_t snow_stop(uint32_t interval, void* param)
 int main(int argc, char* argv[])
 {
     WindowConstSize window;
-    init_SDL2_basic(&window, "RAINGEN", WINDOW_WIDTH, WINDOW_HEIGHT);
+    init_SDL2_basic_vsync(&window, "RAINGEN", WINDOW_WIDTH, WINDOW_HEIGHT);
     if (!init_TTF())
     {
         printf(" unable to init TTF!");
