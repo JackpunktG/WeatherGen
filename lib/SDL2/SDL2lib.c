@@ -1793,6 +1793,14 @@ void start_timer(Timer* timer)
     timer->runningTicks = 0;
 }
 
+void restart_timer(Timer* timer)
+{
+    timer->started = true;
+    timer->paused = false;
+    timer->startTick = SDL_GetTicks();
+    timer->runningTicks = 0;
+}
+
 void update_timer(Timer* timer)
 {
     if (timer->started && !timer->paused)  timer->runningTicks = SDL_GetTicks() - timer->startTick;

@@ -307,6 +307,8 @@ typedef struct
 
 void init_timer(Timer* timer);
 void start_timer(Timer* timer);
+//Will restart if already started
+void restart_timer(Timer* timer);
 void stop_timer(Timer* timer);
 void pause_timer(Timer* timer);
 void unpause_timer(Timer* timer);
